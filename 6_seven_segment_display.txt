@@ -1,0 +1,254 @@
+﻿// Lab 6: seven segment display
+// Tzuyu Jeng, Oct 14
+
+
+`timescale 1ns / 1ps
+
+
+module seven(
+        input clock,
+        input [3:0] digit_1, input [3:0] digit_2,
+        input [3:0] digit_3, input [3:0] digit_4,
+        output [3:0] anode, output [6:0] display
+        );
+        wire [1:0] choice;
+        wire [3:0] decision;
+        clock_enable inst_clock_enable(clock, enable);
+        anode_driver inst_anode_driver(enable, choice, anode);
+        mux inst_mux(digit_1, digit_2, digit_3, digit_4, choice, decision);
+        decoder inst_decoder(decision, display);
+endmodule
+
+
+module clock_enable(input clock, output reg enable);
+        reg [16:0] count;
+        initial begin
+                    count = 0;
+                    enable = 0;
+        end
+        always @(posedge clock) begin
+                    if(count == 4095) begin
+                                count = 0;
+                        enable = 1;
+                    end
+                    else begin
+                        count = count + 1;
+                        enable = 0;
+                    end
+        end
+endmodule
+
+
+module mux(
+        input [3:0] digit_1, input [3:0] digit_2,
+        input [3:0] digit_3, input [3:0] digit_4,
+        input [1:0] choice, output reg [3:0] decision
+        );
+        always @(*) begin
+                    case(choice)
+                            4'b00: decision = digit_1;
+                            4'b01: decision = digit_2;
+                            4'b10: decision = digit_3;
+                            4'b11: decision = digit_4;
+                    endcase
+        end
+endmodule
+
+
+module anode_driver(input enable, output reg [1:0] choice, output reg [3:0] anode);
+        initial begin
+                   choice = 0;
+                   anode = 0;
+        end
+        always @(posedge enable) begin
+                   choice = choice + 1;
+                   case(choice)
+                              4'b00: anode = 4'b0111;
+                              4'b01: anode = 4'b1011;
+                              4'b10: anode = 4'b1101;
+                              4'b11: anode = 4'b1110;
+                   endcase
+        end
+endmodule
+
+
+module decoder(input [3:0] decision, output reg [6:0] display);
+        always @(*) begin
+                    case(decision)
+                            4'b0000: display = 7'b0000001;
+                            4'b0001: display = 7'b1001111;
+                            4'b0010: display = 7'b0010010;
+                            4'b0011: display = 7'b0000110;
+             
+                            4'b0100: display = 7'b1001100;
+                            4'b0101: display = 7'b0100100;
+                            4'b0110: display = 7'b0100000;
+                            4'b0111: display = 7'b0001111;  
+
+
+                            4'b1000: display = 7'b0000000;
+                            4'b1001: display = 7'b0000100;
+                            4'b1010: display = 7'b0001000;
+                            4'b1011: display = 7'b1100000;
+
+
+                            4'b1100: display = 7'b0110001;
+                            4'b1101: display = 7'b1000010;
+                            4'b1110: display = 7'b0110000;
+                            4'b1111: display = 7'b0111000;
+                    endcase
+        end
+endmodule
+
+
+
+
+
+
+
+
+
+
+________________
+
+
+`timescale 1ns / 1ps
+
+
+module seven_tb();
+        reg clock;
+        initial begin
+                    clock <= 0;
+                    forever begin
+                                #10 clock <= clock + 1;
+                    end
+        end
+    
+        reg [3:0] digit_1;
+        initial begin
+                    digit_1 <= 0;
+                    forever begin
+                                #70 digit_1 <= digit_1 + 1;
+                    end
+        end
+    
+        reg [3:0] digit_2;
+                initial begin
+                    digit_2 <= 0;
+                    forever begin
+                                #110 digit_2 <= digit_2 + 1;
+                    end
+        end
+    
+        reg [3:0] digit_3;
+                initial begin
+                    digit_3 <= 0;
+                    forever begin
+                                #190 digit_3 <= digit_3 + 1;
+                    end
+        end
+    
+        reg [3:0] digit_4;
+                initial begin
+                    digit_4 <= 0;
+                    forever begin
+                                #430 digit_4 <= digit_4 + 1;
+                    end
+        end
+
+
+        wire [3:0] anode;
+        wire [6:0] display;
+        seven inst_seven(
+        clock, digit_1, digit_2,
+        digit_3, digit_4,
+        anode, display
+        );
+endmodule
+
+
+
+
+
+
+
+
+
+
+________________
+
+
+set_property IOSTANDARD LVCMOS18 [get_ports clock]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[0]}]
+
+
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_1[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_1[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_1[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_1[0]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_2[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_2[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_2[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_2[0]}]
+
+
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_3[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_3[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_3[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_3[0]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_4[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_4[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_4[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {digit_4[0]}]
+
+
+set_property IOSTANDARD LVCMOS18 [get_ports {display[6]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[5]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[4]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[0]}]
+
+
+set_property PACKAGE_PIN W5 [get_ports clock]
+set_property PACKAGE_PIN W4 [get_ports {anode[0]}]
+set_property PACKAGE_PIN V4 [get_ports {anode[1]}]
+set_property PACKAGE_PIN U4 [get_ports {anode[2]}]
+set_property PACKAGE_PIN U2 [get_ports {anode[3]}]
+
+
+set_property PACKAGE_PIN R2 [get_ports {digit_4[0]}]
+set_property PACKAGE_PIN T1 [get_ports {digit_4[1]}]
+set_property PACKAGE_PIN U1 [get_ports {digit_4[2]}]
+set_property PACKAGE_PIN W2 [get_ports {digit_4[3]}]
+
+
+set_property PACKAGE_PIN R3 [get_ports {digit_3[0]}]
+set_property PACKAGE_PIN T2 [get_ports {digit_3[1]}]
+set_property PACKAGE_PIN T3 [get_ports {digit_3[2]}]
+set_property PACKAGE_PIN V2 [get_ports {digit_3[3]}]
+
+
+set_property PACKAGE_PIN W13 [get_ports {digit_2[0]}]
+set_property PACKAGE_PIN W14 [get_ports {digit_2[1]}]
+set_property PACKAGE_PIN V15 [get_ports {digit_2[2]}]
+set_property PACKAGE_PIN W15 [get_ports {digit_2[3]}]
+
+
+set_property PACKAGE_PIN W17 [get_ports {digit_1[0]}]
+set_property PACKAGE_PIN W16 [get_ports {digit_1[1]}]
+set_property PACKAGE_PIN V16 [get_ports {digit_1[2]}]
+set_property PACKAGE_PIN V17 [get_ports {digit_1[3]}]
+
+
+set_property PACKAGE_PIN U7 [get_ports {display[0]}]
+set_property PACKAGE_PIN V5 [get_ports {display[1]}]
+set_property PACKAGE_PIN U5 [get_ports {display[2]}]
+set_property PACKAGE_PIN V8 [get_ports {display[3]}]
+set_property PACKAGE_PIN U8 [get_ports {display[4]}]
+set_property PACKAGE_PIN W6 [get_ports {display[5]}]
+set_property PACKAGE_PIN W7 [get_ports {display[6]}]

@@ -1,0 +1,265 @@
+﻿// Lab 7: Multibit adders
+// Tzuyu Jeng, Oct 19
+
+
+`timescale 1ns / 1ps
+
+
+module addition(
+   input clock, input [3:0] alpha, input [3:0] beta,
+   output [3:0] anode, output [6:0] display
+);
+   wire enable;
+   wire [1:0] choice;
+   wire [6:0] decision;
+   wire [3:0] carry, sum;
+   ripple_adder the_ripple_adder(alpha, beta, carry, sum);
+   clock_enable the_clock_enable(clock, enable);
+   anode_driver the_anode_driver(enable, choice, anode);
+   mux the_mux(sum, carry[3], beta, alpha, choice, decision);
+   decoder the_decoder(decision, display);
+endmodule
+ 
+ 
+module ripple_adder(
+   input [3:0] a, input [3:0] b,
+   output [3:0] c, output [3:0] s
+);
+   half_adder add_1(a[0], b[0], c[0], s[0]);
+   full_adder add_2(a[1], b[1], c[0], c[1], s[1]);
+   full_adder add_3(a[2], b[2], c[1], c[2], s[2]);
+   full_adder add_4(a[3], b[3], c[2], c[3], s[3]);
+endmodule
+
+
+module full_adder(
+   input a, input b, input c_i,
+   output c_o, output s 
+);
+   wire c_1, c_2, t;
+   half_adder add_1(a, b, c_1, t);
+   half_adder add_2(c_i, t, c_2, s);
+   or(c_o, c_1, c_2);
+endmodule
+
+
+module half_adder(
+   input a, input b,
+   output c, output s
+);
+   xor(s, a, b);
+   and(c, a, b);
+endmodule
+
+
+module clock_enable(
+   input clock,
+   output reg enable
+);
+   reg [16:0] count;
+   initial begin
+          count = 0;
+          enable = 0;
+   end
+   always @(posedge clock) begin
+          if(count == 2047) begin
+             count = 0;
+             enable = 1;
+          end
+          else begin
+             count = count + 1;
+             enable = 0;
+          end
+   end
+endmodule
+
+
+module mux(
+   input [3:0] digit_1, input [3:0] digit_2,
+   input [3:0] digit_3, input [3:0] digit_4,
+   input [1:0] choice,
+   output reg [3:0] decision
+);
+   always @(*) begin
+          case(choice)
+             4'b00: decision = digit_1;
+             4'b01: decision = digit_2;
+             4'b10: decision = digit_3;
+             4'b11: decision = digit_4;
+          endcase
+   end
+endmodule
+
+
+module anode_driver(
+   input enable,
+   output reg [1:0] choice, output reg [3:0] anode
+);
+   initial begin
+          choice = 0;
+          anode = 0;
+   end
+   always @(posedge enable) begin
+          choice = choice + 1;
+          case(choice)
+             4'b00: anode = 4'b0111;
+             4'b01: anode = 4'b1011;
+             4'b10: anode = 4'b1101;
+             4'b11: anode = 4'b1110;
+          endcase
+   end
+endmodule
+
+
+module decoder(input [3:0] decision, output reg [6:0] display);
+   always @(*) begin
+          case(decision)
+             4'b0000: display = 7'b0000001;
+             4'b0001: display = 7'b1001111;
+             4'b0010: display = 7'b0010010;
+             4'b0011: display = 7'b0000110;
+   
+             4'b0100: display = 7'b1001100;
+             4'b0101: display = 7'b0100100;
+             4'b0110: display = 7'b0100000;
+             4'b0111: display = 7'b0001111;  
+
+
+             4'b1000: display = 7'b0000000;
+             4'b1001: display = 7'b0000100;
+             4'b1010: display = 7'b0001000;
+             4'b1011: display = 7'b1100000;
+
+
+             4'b1100: display = 7'b0110001;
+             4'b1101: display = 7'b1000010;
+             4'b1110: display = 7'b0110000;
+             4'b1111: display = 7'b0111000;
+          endcase
+   end
+endmodule
+
+
+
+
+
+
+// // // // // // // // // // // // // // // //
+
+
+`timescale 1ns / 1ps
+
+
+module addition_tb();
+   reg clock;
+   initial begin
+          clock <= 0;
+          forever begin
+             #10 clock <= clock + 1;
+          end
+   end
+
+
+   reg [3:0] alpha;
+   initial begin
+           alpha[0] <= 0;
+           forever #20 alpha[0] <= alpha[0] + 1;
+   end
+   reg [3:0] alpha;
+   initial begin
+           alpha[1] <= 0;
+           forever #70 alpha[1] <= alpha[1] + 1;
+   end
+   initial begin
+           alpha[2] <= 0;
+           forever #230 alpha[2] <= alpha[2] + 1;
+   end
+   initial begin
+           alpha[3] <= 0;
+           forever #310 alpha[3] <= alpha[3] + 1;
+   end
+
+
+   reg [3:0] beta;
+   initial begin
+           beta[0] <= 0;
+           forever #30 beta[0] <= beta[0] + 1;
+   end
+   reg [3:0] beta;
+   initial begin
+           beta[1] <= 0;
+           forever #50 beta[1] <= beta[1] + 1;
+   end
+   initial begin
+           beta[2] <= 0;
+           forever #190 beta[2] <= beta[2] + 1;
+   end
+   initial begin
+           beta[3] <= 0;
+           forever #370 beta[3] <= beta[3] + 1;
+   end
+
+
+   wire [3:0] anode;
+   wire [6:0] display;
+   addition the_addition(clock, alpha, beta, anode, display);
+endmodule
+
+
+// // // // // // // // // // // // // // // //
+
+
+set_property PACKAGE_PIN W5 [get_ports clock]
+set_property PACKAGE_PIN W4 [get_ports {anode[0]}]
+set_property PACKAGE_PIN V4 [get_ports {anode[1]}]
+set_property PACKAGE_PIN U4 [get_ports {anode[2]}]
+set_property PACKAGE_PIN U2 [get_ports {anode[3]}]
+
+
+set_property PACKAGE_PIN R2 [get_ports {alpha[3]}]
+set_property PACKAGE_PIN T1 [get_ports {alpha[2]}]
+set_property PACKAGE_PIN U1 [get_ports {alpha[1]}]
+set_property PACKAGE_PIN W2 [get_ports {alpha[0]}]
+
+
+set_property PACKAGE_PIN R3 [get_ports {beta[3]}]
+set_property PACKAGE_PIN T2 [get_ports {beta[2]}]
+set_property PACKAGE_PIN T3 [get_ports {beta[1]}]
+set_property PACKAGE_PIN V2 [get_ports {beta[0]}]
+
+
+set_property PACKAGE_PIN U7 [get_ports {display[0]}]
+set_property PACKAGE_PIN V5 [get_ports {display[1]}]
+set_property PACKAGE_PIN U5 [get_ports {display[2]}]
+set_property PACKAGE_PIN V8 [get_ports {display[3]}]
+set_property PACKAGE_PIN U8 [get_ports {display[4]}]
+set_property PACKAGE_PIN W6 [get_ports {display[5]}]
+set_property PACKAGE_PIN W7 [get_ports {display[6]}]
+
+
+
+
+set_property IOSTANDARD LVCMOS18 [get_ports clock]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {anode[0]}]
+
+
+set_property IOSTANDARD LVCMOS18 [get_ports {alpha[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {alpha[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {alpha[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {alpha[0]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {beta[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {beta[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {beta[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {beta[0]}]
+
+
+set_property IOSTANDARD LVCMOS18 [get_ports {display[6]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[5]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[4]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[3]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[2]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[1]}]
+set_property IOSTANDARD LVCMOS18 [get_ports {display[0]}]
