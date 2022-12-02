@@ -1,9 +1,6 @@
 ﻿// sequential multiplier
 // adapted from Mano and Ciletti, 6e, p 516
 
-
-
-
 module multiplication(
    input clock, input clear,
    input [3:0] alpha, input [3:0] beta,
@@ -22,9 +19,6 @@ module multiplication(
         anode, cathode
    );
 endmodule
-
-
-
 
 module multiplier(
    clock, clear,
@@ -49,12 +43,10 @@ module multiplier(
    wire zero = (P == 0);
    wire ready = (state == state_idle);
 
-
    always @ (posedge clock, posedge clear) begin
         if (clear) state <= state_idle;
         else state <= next;
    end
-
 
    always @ (state, Q[0], zero) begin
         next = state_idle;

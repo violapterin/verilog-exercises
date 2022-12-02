@@ -4,8 +4,48 @@
 
 `timescale 1ns / 1ps
 
+module float_adder(
+   input clock,
+   input clear,
+   input [3:0] alpha,
+   input [3:0] beta,
+   output [7:0] result,
+   output [3:0] anode,  
+   output [6:0] cathode,
+);
+   wire start_bit, normal;
+   path_control the_path_control(
+      .clock(clock),
+      .clear(clear),
+      .start(start),
+      .start_bit(start_bit),
+      .normal(normal),
+      .valid(valid)
+   );
+   path_data the_path_data(
+      .a(a),
+      .b(b),
+      .clock(clock),
+      .clear(clear),
+      .start_bit(start_bit),
+      .normal(normal),
+      .result(result)
+   );
+   display the_display(
+      .clock(clock),
+      .digit_1(alpha),
+      .digit_2(beta),
+      .digit_3(result[7:4]),
+      .digit_4(result[3:0]),
+      .anode(anode),
+      .cathode(cathode)
+   );
+endmodule
+
+
+
 module square_root(
-   input clock, 
+   input clock,
    input clear,
    input [3:0] alpha,
    output [3:0] anode,  
@@ -26,7 +66,9 @@ module square_root(
       .alpha(alpha),
       .control(control),
       .square_root(square_root),
+      .greater(greater)
    );
+
    display the_display(
       .clock(clock),
       .digit_1(square_root),
@@ -63,126 +105,137 @@ module display(
    decoder the_decoder(decision, cathode);
 endmodule: display
 
-
 module path_control(
-   input clock,
-   input clear,
-   input start,
-   input greater,
-   output enable_increment,
-   output enable_alpha,
-   output enable_square,
-   output enable_delta,
-   output enable_out,
-   output valid
-);
-   parameter idle = 2'b11;
-   parameter load = 2'b00;
-   parameter add = 2'b01;
-   parameter divide = 2'b10;
-   reg [1:0] state;
-   reg [1:0] next;
-   reg [5:0] control;
-   
-   always @(*)
-      case(state)
-         idle:
-            if(start)
-               next = load;
-            else
-               next = idle;
-         load:
-            if(greater)
-               next = divide;
-            else
-               next = add;
-         add:
-            if(greater)
-               next = divide;
-            else
-               next = add;
-         divide:
-            next = idle;
-         default:
-            next = idle;
-      endcase;
-      
-   always @(negedge clock or posedge clear)
-      if(clear)
-         state <= idle;
-      else
-         state <= next;
-         
-   always @(state)
-      case(state)
-         idle:
-            control = 6'b100000;
-         load:
-            control = 6'b001110;
-         add:
-            control = 6'b001111;
-         divide:
-            control = 6'b010000;
-         default:
-            control = 6'b000000;
-      endcase;
-         
-   assign enable_increment = control[0];
-   assign enable_alpha = control[1];
-   assign enable_square = control[2];
-   assign enable_delta = control[3];
-   assign enable_out = control[4];
-   assign valid = control[5];
+    input clock, clear,
+    input start,
+    output reg start_bit, normal, valid
+    );
+    reg [1:0] state, next;
+    
+    parameter start_s = 3'd0, normal_s = 3'b1, valid_s = 3'd2;
+    
+    always @(negedge clock or posedge clear) begin
+        if (clear) state = start_s;
+        else begin
+            state = next;
+        end
+    end
+    
+    always @(*) begin
+        case(state)
+            start_s: begin
+               if (start == 0)
+                  next = start_s; 
+               else if (start == 1)
+                  next = normal_s;
+            end
+            normal_s: next = valid_s;
+            valid_s: begin
+                 if (start) next = start_s; 
+                 else next = valid_s; 
+            end
+            default: next = start_s;
+        endcase
+    end
+    
+    always @(*) begin
+        case(state)
+            start_s: begin
+                start_bit = 1;
+                normal = 0;
+                valid = 0;
+            end
+            normal_s: begin
+                start_bit = 0;
+                normal = 1;
+                valid = 0;
+            end
+            valid_s: begin
+                start_bit = 0;
+                normal = 0;
+                valid = 1;
+            end
+        endcase
+    end
 endmodule: path_control
 
 module path_data(
-   input clock,
-   input clear,
-   input [7:0] alpha,
-   input [5:0] control,
-   output reg [3:0] square_root,
-);
-    reg [8:0] square;
-    reg [5:0] delta;
-    reg [7:0] beta;
+    input [7:0] a, b,
+    input clock, clear, start_bit, normal, 
+    output reg [7:0] result
+    );
+    integer a_int, b_int, sign_gt, sign_lt, mant_gt, mant_lt, exp_gt, exp_lt, sign_ans, exp_ans, mant_ans, hold;
     
-    always @(posedge clock or posedge clear)
-      if(clear)
-         beta <= 0;
-      else if(enable_alpha)
-         beta <= alpha;
-         
-    always @(posedge clock or posedge clear)
-      if(clear)
-         square <= 0;
-      else if(enable_square)
-         if(enable_increment)
-            square <= square + delta;
-         else
-            square <= 1;
-   
-   always @(posedge clock or posedge clear)
-      if(clear)
-         delta <= 0;
-      else if(enable_delta)
-         if(enable_increment)
-            delta <= delta + 2;
-         else
-            delta <= 3;
-      
-   always @(posedge clock or posedge clear)
-      if(clear)
-         square_root = 0;
-      else if(enable_out)
-         square_root = (delta >> 1) - 1;
-         
-   assign enable_increment = control[0];
-   assign enable_alpha = control[1];
-   assign enable_square = control[2];
-   assign enable_delta = control[3];
-   assign enable_out = control[4];
-   assign valid = control[5];
+    always @(posedge clock or posedge clear) begin
+      if (start_bit || clear) begin
+         result = 8'b0;
+         if (a[6:3] > b [6:3]) begin // same sign, alpha exponent bigger
+            sign_gt = a[7];
+            exp_gt = a[6:3];
+            mant_gt = a[2:0] + 8;
+            sign_lt = b[7];
+            exp_lt = b[6:3];
+            mant_lt = b[2:0] + 8;
+         end
+         else if (a[6:3] < b [6:3]) begin // same sign, beta exponent bigger
+            sign_gt = b[7];
+            exp_gt = b[6:3];
+            mant_gt = b[2:0] + 8;
+            sign_lt = a[7];
+            exp_lt = a[6:3];
+            mant_lt = a[2:0] + 8;
+         end
+         else if (a[2:0] > b [2:0]) begin // same exponent, alpha mantissa bigger
+               sign_gt = a[7];
+               exp_gt = a[6:3];
+               mant_gt = a[2:0] + 8;
+               sign_lt = b[7];
+               exp_lt = b[6:3];
+               mant_lt = b[2:0] + 8;
+         end
+         else if (a[2:0] < b [2:0]) begin // same exponent, beta mantissa bigger
+               sign_gt = b[7];
+               exp_gt = b[6:3];
+               mant_gt = b[2:0] + 8;
+               sign_lt = a[7];
+               exp_lt = a[6:3];
+               mant_lt = a[2:0] + 8;
+         end
+         exp_ans = exp_gt;
+         sign_ans = sign_gt;
+         mant_lt = mant_lt >> (exp_gt - exp_lt);
+         //perform operation
+         mant_ans = (
+            (sign_gt == sign_lt) ?
+            (mant_gt + mant_lt) :
+            (mant_gt - mant_lt)
+         );
+      end
+      else if (normal) begin
+         if (mant_ans[4] == 1) begin
+               while (mant_ans[4] == 1) begin
+                  hold = mant_ans[0];
+                  mant_ans = mant_ans >> 1;
+                  if (hold) mant_ans = mant_ans + 1; //round
+                  exp_ans = exp_ans +1;
+               end
+         end
+         else if (mant_ans[4] == 0 && mant_ans[3] == 0) begin
+               while (mant_ans[4] == 0 && mant_ans[3] == 0) begin
+                  hold = mant_ans[0];
+                  mant_ans = mant_ans << 1;
+                  //if (hold) mant_ans = mant_ans + 1; //round
+                  exp_ans = exp_ans -1;
+               end
+         end
+         result[7] = sign_ans;
+         result[6:3] = exp_ans;
+         result[2:0] = mant_ans[2:0];    
+      end
+    end
 endmodule: path_data
+
+
 
 module clock_enable(
    input [2:0] mode,
