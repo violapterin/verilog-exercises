@@ -36,7 +36,7 @@ module vending_machine (
       .anode(anode) 
       .cathode(cathode)
    );
-endmodule: vending_machine // easier to identify end of a long module
+endmodule: vending_machine
 
 module path_control(
    input clk,
@@ -51,23 +51,37 @@ module path_control(
    output valid
 );
    
-   parameter idle = 2'b11, load = 2'b00, add = 2'b01, div = 2'b10;
+   parameter idle = 2'b11;
+   parameter load = 2'b00;
+   parameter add = 2'b01;
+   parameter div = 2'b10;
    reg [1:0] state;
    reg [1:0] next_state;
-    reg [5:0] control;
+   reg [5:0] control;
    
    initial state = idle;
    
    always @(state or start or greater)
       case(state)
-         idle:  if(start)   next_state = load;
-               else        next_state = idle;
-         load:  if(greater) next_state = div;
-               else        next_state = add;
-         add:   if(greater) next_state = div;
-               else        next_state = add;
-         div:               next_state = idle;
-         default:           next_state = idle;
+         idle:
+            if(start)
+               next_state = load;
+            else
+               next_state = idle;
+         load:
+            if(greater)
+               next_state = div;
+            else
+               next_state = add;
+         add:
+            if(greater)
+               next_state = div;
+            else
+               next_state = add;
+         div:
+            next_state = idle;
+         default:
+            next_state = idle;
       endcase;
       
    always @(negedge clk or posedge clr)
