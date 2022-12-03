@@ -1,37 +1,34 @@
 // Lab 9: Vending machine
 // Tzuyu Jeng, Nov 4
-// 
 
 
 `timescale 1ns / 1ps
 
-// Top integration module of design (Logic + IP interface)
 module vending_machine (
-   input            clock, 
-   input            clear,
-   input    [2:0]   button, 
-   input    [3:0]   switch,
-   output   [3:0]   anode,  
-   output   [6:0]   cathode,
-   output   [3:0]   state,  // Why? // default wire, okay for integration part
-   output   [3:0]   next    // Why?
+   input clock, 
+   input clear,
+   input [2:0] button, 
+   input [3:0] switch,
+   output [3:0] anode,  
+   output [6:0] cathode
 );
-   wire     [7:0]   amount;
-   wire     [7:0]   cost;
-   wire     [7:0]   product;
+   wire [7:0] amount;
+   wire [7:0] cost;
+   wire [7:0] product;
+   wire [3:0] state;
+   wire [3:0] next;
    
-   vendor the_vendor ( // use .() notation recommended
-      .clock (clock),
-      .clear (clear),
+   vendor the_vendor(
+      .clock(clock),
+      .clear(clear),
       .button(button),
       .switch(switch),
       .amount(amount),
-      .cost  (cost),
-      .state (state),
-      .next  (next)
+      .cost(cost),
+      .state(state),
+      .next(next)
    );
-   
-   display the_display ( // often use {}_0 or 
+   display the_display (
       .clock  (clock),
       .digit_1(amount[7:4]),
       .digit_2(amount[3:0]),
@@ -40,19 +37,15 @@ module vending_machine (
       .anode  (anode) 
       .cathode(cathode)
    );
-
-endmodule: vending_machine // easier to identify end of a long module
-
+endmodule: vending_machine
 
 module vendor(
-   input               clock,
-   input               clear,
-   input        [2:0]  button,
-   input        [3:0]  switch,
-   output  reg  [7:0]  amount,
-   output  reg  [7:0]  cost,
-   output  reg  [3:0]  state,
-   output  reg  [3:0]  next
+   input clock,
+   input clear,
+   input [2:0] button,
+   input [3:0] switch,
+   output reg [7:0] amount,
+   output reg [7:0] cost
 );
    
    parameter entered_00 = 4'b0000,
@@ -80,15 +73,12 @@ module vendor(
    parameter nickel     = 3'd1;
 
    wire enable;
-   // reg  [3:0]  state, next_state;
+   wire [3:0] state;
+   wire [3:0] next;
 
-   clock_slow the_clock_slow (.clock(clock), .enable(enable));
+   clock_enable the_clock_slow(2, clock, enable);
    
-   // initial next = 0;  // not synthesizable
-   // initial state = 0; // not synthesizable 
-   
-   always @(*) begin // more convenient
-      // can use next = state;
+   always @(*) begin
       case(state)
          entered_00: begin
             if (button == nickel)
@@ -204,148 +194,130 @@ module vendor(
       endcase
    end
 
-   // This is the sequential block with asynchronous reset
    always @(posedge enable or posedge clear) begin
       if (clear)
-         state <= entered_00; // use nonblocking assignment "<="
+         state <= entered_00;
       else
-         state <= next; // use nonblocking assignement "<=", // careful without begin/end
+         state <= next;
    end
    
-   // always @(state or switch) begin
    always @(*) begin
       case(switch)
-         product_15: cost = 8'h15;
-         product_20: cost = 8'h20;
-         product_25: cost = 8'h25;
-         product_30: cost = 8'h30;
+         product_15: cost = 8'd15;
+         product_20: cost = 8'd20;
+         product_25: cost = 8'd25;
+         product_30: cost = 8'd30;
          default: cost = 8'h00;
       endcase
       
       case(state)
-         entered_00: amount = 8'h00;
-         entered_05: amount = 8'h05;
-         entered_10: amount = 8'h10;
-         entered_15: amount = 8'h15;
-         entered_20: amount = 8'h20;
-         entered_25: amount = 8'h25;
-         entered_30: amount = 8'h30;
-         entered_35: amount = 8'h35;
-         change_00: amount = 8'h00;
-         change_05: amount = 8'h05;
-         change_10: amount = 8'h10;
-         change_15: amount = 8'h15;
-         change_20: amount = 8'h20;
-         default: amount = 8'h00;
+         entered_00: amount = 8'd00;
+         entered_05: amount = 8'd05;
+         entered_10: amount = 8'd10;
+         entered_15: amount = 8'd15;
+         entered_20: amount = 8'd20;
+         entered_25: amount = 8'd25;
+         entered_30: amount = 8'd30;
+         entered_35: amount = 8'd35;
+         change_00: amount = 8'd00;
+         change_05: amount = 8'd05;
+         change_10: amount = 8'd10;
+         change_15: amount = 8'd15;
+         change_20: amount = 8'd20;
+         default: amount = 8'd00;
       endcase
    end
 endmodule: vendor
 
 module display(
    input clock,
-   input [3:0] digit_1, input [3:0] digit_2,
-   input [3:0] digit_3, input [3:0] digit_4,
-   output [3:0] anode, output [6:0] cathode
+   input [3:0] digit_1,
+   input [3:0] digit_2,
+   input [3:0] digit_3,
+   input [3:0] digit_4,
+   output [3:0] anode,
+   output [6:0] cathode
 );
    wire enable;
    wire [1:0] choice;
    wire [3:0] decision;
-   clock_moderate the_clock_moderate(clock, enable); // not synthesizable
+   clock_enable the_clock_moderate(1, clock, enable);
    anode_driver the_anode_driver(enable, choice, anode);
-   mux the_mux(digit_1, digit_2, digit_3, digit_4, choice, decision);
+   multiplexer the_multiplexer(
+      .digit_1(digit_1),
+      .digit_2(digit_2),
+      .digit_3(digit_3),
+      .digit_4(digit_4),
+      .choice(choice),
+      .decision(decision)
+   );
    decoder the_decoder(decision, cathode);
-endmodule
+endmodule: display
 
-// Not used: Can use mode in clock enable for 16, 2048, 524288 if needed
-module clock_fast(input clock, output wire enable);
-   clock_enable the_clock_enable(16, clock, enable);
-endmodule
-
-module clock_moderate(input clock, output wire enable);
-   clock_enable the_clock_enable(2048, clock, enable);
-endmodule
-
-module clock_slow(input clock, output wire enable);
-   clock_enable the_clock_enable(524288, clock, enable);
-endmodule
-
-
-// weird block, is a sequential block but written as combinational
 module clock_enable(
-   input        [20:0]  ratio,
-   input                clock,
-   input                reset,
-   input        [2:0]   mode,
-   output reg           enable
+   input [2:0] mode,
+   input clock,
+   input reset,
+   output reg enable
 );
-
-   parameter fast     = 16;
-   parameter moderate = 2048;
-   parameter slow     = 524288;
-
+   parameter mode_fast = 2'b00;
+   parameter mode_moderate = 2'b01;
+   parameter mode_slow = 2'b10;
+   parameter ratio_fast = 16;
+   parameter ratio_moderate = 2048;
+   parameter ratio_slow = 524288;
    reg [16:0] count;
+   wire [19:0] ratio;
 
    case (mode)    
-      2'b1: bypass_ratio = fast
-      2'b2: bypass_ratio = moderate
+      mode_fast:
+         ratio = ratio_fast;
+      mode_moderate:
+         ratio = ratio_moderate;
+      mode_slow:
+         ratio = ratio_slow;
    endcase
-
-   if (mode != 'd0) begin
-      common_ratio = bypass_ratio
-   end
-   else begin
-      common_ratio = ratio
-   end
-
-   // Not synthesizable
-   // initial begin
-   //   count = 0;
-   //   enable = 0;
-   // end
    always @(posedge clock or posedge reset) begin
       if (reset) begin
          count  <= 1'b0;
          enable <= 1'b0;
       end
-      else if (count == common_ratio - 1) begin
+      else if (count == ratio - 1) begin
          count  <= 1'b0;
          enable <= 1'b1;
       end
       else begin
-         count  <= count + 16'd1;
+         count  <= count + 1'b1;
          enable <= 1'b0;
       end
    end
-endmodule
+endmodule: clock_enable
 
-module mux(
-   input [3:0] digit_1, input [3:0] digit_2,
-   input [3:0] digit_3, input [3:0] digit_4,
+module multiplexer(
+   input [3:0] digit_1,
+   input [3:0] digit_2,
+   input [3:0] digit_3,
+   input [3:0] digit_4,
    input [1:0] choice,
    output reg [3:0] decision
 );
    always @(*) begin
      case(choice)
-       4'b00: decision = digit_1;
-       4'b01: decision = digit_2;
-       4'b10: decision = digit_3;
-       4'b11: decision = digit_4;
+       2'b00: decision = digit_1;
+       2'b01: decision = digit_2;
+       2'b10: decision = digit_3;
+       2'b11: decision = digit_4;
      endcase
    end
-endmodule
+endmodule: multiplexer
 
 module anode_driver(
-   input enable, // clock-like signal
-   output reg [1:0] choice, output reg [3:0] anode
+   input enable,
+   output reg [1:0] choice,
+   output reg [3:0] anode
 );
-
-   // initial begin
-   //    choice = 0;
-   //    anode = 0;
-   // end
    always @(posedge enable) begin
-     
-     choice    <= choice + 1;
+     choice <= choice + 1;
      case(choice)
        4'b00: anode <= 4'b0111;
        4'b01: anode <= 4'b1011;
@@ -353,10 +325,12 @@ module anode_driver(
        4'b11: anode <= 4'b1110;
      endcase
    end
-endmodule
+endmodule: anode_driver
 
-
-module decoder(input [3:0] decision, output reg [6:0] cathode);
+module decoder(
+   input [3:0] decision,
+   output reg [6:0] cathode
+);
    always @(*) begin
      case(decision)
        4'b0000: cathode = 7'b0000001;
@@ -380,65 +354,4 @@ module decoder(input [3:0] decision, output reg [6:0] cathode);
        4'b1111: cathode = 7'b0111000;
      endcase
    end
-endmodule
-
-
-
-// // // // // // // // // // // // // // // //
-
-
-`timescale 1ns / 1ps
-
-
-module vending_machine_test();
-   reg clear = 0;
-   reg clock;
-   initial begin
-        clock <= 0;
-        forever begin
-          #10 clock <= clock + 1;
-        end
-   end
-
-   reg [2:0] button;
-   initial begin
-         button[0] <= 0;
-         forever #30 button[0] <= button[0] + 1;
-   end
-   initial begin
-         button[1] <= 0;
-         forever #50 button[1] <= button[1] + 1;
-   end
-   initial begin
-         button[2] <= 0;
-         forever #190 button[2] <= button[2] + 1;
-   end
-
-   reg [3:0] switch;
-   initial begin
-         switch[0] <= 0;
-         forever #20 switch[0] <= switch[0] + 1;
-   end
-   initial begin
-         switch[1] <= 0;
-         forever #70 switch[1] <= switch[1] + 1;
-   end
-   initial begin
-         switch[2] <= 0;
-         forever #230 switch[2] <= switch[2] + 1;
-   end
-   initial begin
-         switch[3] <= 0;
-         forever #310 switch[3] <= switch[3] + 1;
-   end
-
-   wire [3:0] anode;
-   wire [6:0] cathode;
-   wire [3:0] state, next;
-   vending_machine the_vending_machine(
-     clock, clear,
-     button, switch,
-     anode, cathode,
-     state, next
-   );
-endmodule
+endmodule: decoder

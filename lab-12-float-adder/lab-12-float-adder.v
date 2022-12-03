@@ -106,13 +106,23 @@ module display(
 endmodule: display
 
 module path_control(
-    input clock, clear,
-    input start,
-    output reg start_bit, normal, valid
-    );
-    reg [1:0] state, next;
+   input clock,
+   input clear,
+   input alpha_canonical, // summand
+   input beta_canonical, // summand
+   output gamma_canonical, // summand
+   output reg control,
+);
+   reg [1:0] state;
+   reg [1:0] next;
+   assign alpha_abnormal = control[0];
+   assign beta_abnormal = control[0];
+   assign alpha_exponent_bigger = control[0];
+   assign beta_exponent_bigger = control[0];
+   assign valid = control[5];
+
     
-    parameter start_s = 3'd0, normal_s = 3'b1, valid_s = 3'd2;
+   parameter start_s = 3'd0, normal_s = 3'b1, valid_s = 3'd2;
     
     always @(negedge clock or posedge clear) begin
         if (clear) state = start_s;
