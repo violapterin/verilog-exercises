@@ -18,7 +18,6 @@ module multiplication(
       .number_one(number_one),
       .number_two(number_two),
       .result(result),
-      .ready(ready),
    );
    display the_display(
       .clock(clock),
@@ -66,9 +65,9 @@ module path_control(
    input [1: 0] flag_control,
    output [3: 0] flag_data,
 );
-   parameter state_idle = 3'b001;
-   parameter state_add = 3'b010;
-   parameter state_shift = 3'b100;
+   parameter state_idle = 2'b01;
+   parameter state_add = 2'b10;
+   parameter state_shift = 2'b11;
    reg [2: 0] state;
    reg [2: 0] next;
 
@@ -155,10 +154,20 @@ module path_data(
          counter <= counter - 1;
    end
 
-   flag_control[0] = (counter == 0);
-   flag_control[1] = (beta[0]);
+   flag_zero = (counter == 0);
+   flag_onset = beta[0];
 
-   assign result = {gamma, beta};
+   always @(posedge clock or posedge clear) begin
+      if(clear)
+         alpha <= 0;
+         beta <= 0;
+         carry <= 0;
+         gamma <= 0;
+         counter <= 0;
+         result <= 0;
+      else
+         result <= {gamma, beta};
+   end
 endmodule: path_data
 
 module display(

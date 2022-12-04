@@ -42,117 +42,109 @@ module path_control(
    input clock,
    input clear,
    input start,
-   input greater,
-   output reg [5:0] control,
-   output valid
+   input flag_control,
+   output [3:0] flag_data,
 );
-   parameter idle = 2'b11;
-   parameter load = 2'b00;
-   parameter add = 2'b01;
-   parameter divide = 2'b10;
-
+   parameter state_idle = 2'b00;
+   parameter state_load = 2'b01;
+   parameter state_add = 2'b10;
+   parameter state_half = 2'b11;
    reg [1:0] state;
    reg [1:0] next;
+
+   reg flag_greater = flag_control;
+   reg flag_load = flag_data[0];
+   reg flag_add = flag_data[1];
+   reg flag_half = flag_data[2];
    
    always @(*) begin
+      flag_greater = 0;
+      flag_load = 0;
+      flag_add = 0;
+      flag_half = 0;
       case(state)
-         idle:
+         state_idle:
             if(start)
-               next = load;
+               next = state_load;
+               flag_load = 1;
             else
-               next = idle;
-         load:
-            if(greater)
-               next = divide;
+               next = state_idle;
+         state_load:
+            if(flag_greater)
+               next = state_half;
+               flag_half = 1;
             else
-               next = add;
-         add:
-            if(greater)
-               next = divide;
+               next = state_add;
+               flag_add = 1;
+         state_add:
+            if(flag_greater)
+               next = flag_half;
+               flag_half = 1;
             else
-               next = add;
-         divide:
-            next = idle;
+               next = state_add;
+               flag_add = 1;
+         state_half:
+            next = state_idle;
          default:
-            next = idle;
+            next = state_idle;
       endcase;
    end
-      
-   always @(negedge clock or posedge clear)
+
+   always @(negedge clock or posedge clear) begin
       if(clear)
          state <= idle;
       else
          state <= next;
-         
-   always @(state)
-      case(state)
-         idle:
-            control = 6'b100000;
-         load:
-            control = 6'b001110;
-         add:
-            control = 6'b001111;
-         divide:
-            control = 6'b010000;
-         default:
-            control = 6'b000000;
-      endcase;
-         
-   assign flag_increment = control[0];
-   assign flag_alpha = control[1];
-   assign flag_square = control[2];
-   assign flag_delta = control[3];
-   assign flag_out = control[4];
-   assign valid = control[5];
+   end
 endmodule: path_control
 
 module path_data(
    input clock,
    input clear,
-   input [7:0] alpha,
-   input [5:0] control,
-   output reg [3:0] square_root,
+   input [7:0] number,
+   output [2:0] flag_data,
+   output result,
+   input flag_control,
 );
-    reg [8:0] square;
-    reg [5:0] delta;
-    reg [7:0] beta;
-    
-    always @(posedge clock or posedge clear)
-      if(clear)
-         beta <= 0;
-      else if(flag_alpha)
-         beta <= alpha;
-         
-    always @(posedge clock or posedge clear)
-      if(clear)
-         square <= 0;
-      else if(flag_square)
-         if(flag_increment)
-            square <= square + delta;
-         else
-            square <= 1;
+   reg [4:0] alpha;
+   reg [4:0] delta;
+   reg [7:0] square;
+
+   reg flag_load = flag_data[0];
+   reg flag_add = flag_data[1];
+   reg flag_half = flag_data[2];
+   reg flag_greater = flag_control;
+
+   always @(posedge clock) begin
+      if(flag_load)
+         alpha <= number;
+   end
+
+   always @(posedge clock) begin
+      if(flag_add)
+         square <= square + delta;
+      else
+         square <= 1;
+   end
    
-   always @(posedge clock or posedge clear)
+   always @(posedge clock) begin
+      if(flag_add)
+         delta <= delta + 2;
+      else
+         delta <= 3;
+   end
+   
+   flag_greater = (square > alpha);
+   
+   always @(posedge clock or posedge clear) begin
       if(clear)
+         alpha <= 0;
          delta <= 0;
-      else if(flag_delta)
-         if(flag_increment)
-            delta <= delta + 2;
-         else
-            delta <= 3;
-      
-   always @(posedge clock or posedge clear)
-      if(clear)
-         square_root = 0;
-      else if(flag_out)
-         square_root = (delta >> 1) - 1;
-         
-   assign flag_increment = control[0];
-   assign flag_alpha = control[1];
-   assign flag_square = control[2];
-   assign flag_delta = control[3];
-   assign flag_out = control[4];
-   assign valid = control[5];
+         square <= 0;
+         result <= 0;
+      else
+         result <= (delta >> 1) - 1;
+   end
 endmodule: path_data
 
 module display(
