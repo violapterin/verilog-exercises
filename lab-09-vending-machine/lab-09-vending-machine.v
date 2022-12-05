@@ -257,7 +257,7 @@ endmodule: display
 module clock_enable(
    input [2:0] mode,
    input clock,
-   input reset,
+   input clear,
    output reg enable
 );
    parameter mode_fast = 2'b00;
@@ -277,8 +277,8 @@ module clock_enable(
       mode_slow:
          ratio = ratio_slow;
    endcase
-   always @(posedge clock or posedge reset) begin
-      if (reset) begin
+   always @(posedge clock or posedge clear) begin
+      if (clear) begin
          count  <= 1'b0;
          enable <= 1'b0;
       end

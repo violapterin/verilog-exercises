@@ -4,7 +4,7 @@
 
 `timescale 1ns / 1ps
 
-module float_adder(
+module main(
    input clock,
    input clear,
    input [3:0] alpha,
@@ -13,23 +13,14 @@ module float_adder(
    output [3:0] anode,  
    output [6:0] cathode,
 );
-   wire start_bit, normal;
-   path_control the_path_control(
-      .clock(clock),
-      .clear(clear),
-      .start(start),
-      .start_bit(start_bit),
-      .normal(normal),
-      .valid(valid)
-   );
-   path_data the_path_data(
-      .a(a),
-      .b(b),
-      .clock(clock),
-      .clear(clear),
-      .start_bit(start_bit),
-      .normal(normal),
-      .result(result)
+   float_adder(
+      input clock,
+      input clear,
+      input [3:0] alpha,
+      input [3:0] beta,
+      input [7:0] result,
+      output [3:0] anode,  
+      output [6:0] cathode,
    );
    display the_display(
       .clock(clock),
@@ -40,14 +31,14 @@ module float_adder(
       .anode(anode),
       .cathode(cathode)
    );
-endmodule
+endmodule: main
 
-
-
-module square_root(
+module float_adder(
    input clock,
    input clear,
    input [3:0] alpha,
+   input [3:0] beta,
+   input [7:0] result,
    output [3:0] anode,  
    output [6:0] cathode,
 );
@@ -68,7 +59,6 @@ module square_root(
       .square_root(square_root),
       .greater(greater)
    );
-
    display the_display(
       .clock(clock),
       .digit_1(square_root),
@@ -78,7 +68,199 @@ module square_root(
       .anode(anode),
       .cathode(cathode)
    );
-endmodule: square_root
+endmodule: float_adder
+
+module path_control(
+   input clock,
+   input clear,
+   input [5:0] flag_control,
+   output [6:0] flag_data,
+);
+   parameter state_idle = 3'b000;
+   parameter state_load = 3'b001;
+   parameter state_adjust = 3'b010;
+   parameter state_add = 3'b011;
+   parameter state_exception = 3'b100;
+   parameter state_result = 3'b101;
+   reg [2: 0] state;
+   reg [2: 0] next;
+
+   wire flag_alpha_abnormal = flag_control[0];
+   wire flag_beta_abnormal = flag_control[1];
+   wire flag_alpha_exponent_bigger = flag_control[2];
+   wire flag_beta_exponent_bigger = flag_control[3];
+   wire flag_overflow = flag_control[4];
+   wire flag_gamma_abnormal = flag_control[5];
+
+   reg flag_normalize_alpha = flag_data[0];
+   reg flag_normalize_beta = flag_data[1];
+   reg flag_shift_alpha = flag_data[2];
+   reg flag_shift_beta = flag_data[3];
+   reg flag_add = flag_data[4];
+   reg flag_exception = flag_data[5];
+   reg flag_normalize_gamma = flag_data[6];
+
+   always @ (posedge clock or posedge clear) begin
+      if (clear)
+         state <= state_idle;
+      else
+         state <= next;
+   end
+
+   always @(*) begin
+      flag_normalize_alpha = 0;
+      flag_normalize_beta = 0;
+      flag_shift_alpha = 0;
+      flag_shift_beta = 0;
+      flag_add = 0;
+      flag_exception = 0;
+      flag_normalize_gamma  = 0;
+      next = state_load;
+
+      case (state) begin
+         state_idle:
+            next = state_load;
+         state_load:
+            flag_load = 1;
+            if (flag_alpha_abnormal):
+               flag_normalize_alpha = 1;
+            else if (flag_beta_abnormal):
+               flag_normalize_beta = 1;
+            else
+               next = state_adjust;
+         state_adjust:
+            if (flag_alpha_exponent_bigger)
+               flag_shift_alpha = 1;
+            if (flag_beta_exponent_bigger)
+               flag_shift_beta = 1;
+            else
+               next = state_add;
+         state_add:
+            flag_add = 1;
+            if (flag_overflow)
+               next = state_exception;
+            else
+               next = state_result;
+         state_exception:
+            flag_exception = 1;
+            next = state_output;
+         state_result:
+            if (flag_gamma_abnormal)
+               flag_normalize_gamma = 1;
+            else
+               next = state_idle;
+      endcase
+   end
+endmodule: path_control
+
+module path_data(
+   input clock,
+   input clear,
+   input [7:0] number_one,
+   input [7:0] number_two,
+   input [6:0] flag_data,
+   output [7:0] result
+   output [5:0] flag_control,
+);
+   wire sign_one = number_one[7];
+   wire sign_two = number_two[7];
+   wire [3:0] exponent_one = number_one[6:3];
+   wire [3:0] exponent_two = number_two[6:3];
+   wire [2:0] fraction_one = number_one[2:0];
+   wire [2:0] fraction_two = number_two[2:0];
+
+   reg [3:0] exponent_alpha;
+   reg [3:0] exponent_beta;
+   reg [3:0] exponent_gamma;
+   reg [4:0] mantissa_alpha;
+   reg [4:0] mantissa_beta;
+   reg [4:0] mantissa_gamma;
+   reg overflow;
+
+   wire flag_normalize_alpha = flag_data[0];
+   wire flag_normalize_beta = flag_data[1];
+   wire flag_shift_alpha = flag_data[2];
+   wire flag_shift_beta = flag_data[3];
+   wire flag_add = flag_data[4];
+   wire flag_exception = flag_data[5];
+   wire flag_normalize_gamma = flag_data[6];
+
+   reg flag_alpha_abnormal = flag_control[0];
+   reg flag_beta_abnormal = flag_control[1];
+   reg flag_alpha_exponent_bigger = flag_control[2];
+   reg flag_beta_exponent_bigger = flag_control[3];
+   reg flag_overflow = flag_control[4];
+   reg flag_gamma_abnormal = flag_control[5];
+
+   always @(*) begin
+      if (flag_load) begin
+         exponent_alpha = exponent_one;
+         mantissa_alpha[4] = sign_one;
+         mantissa_alpha[3] = 1;
+         mantissa_alpha[2:0] = number_one[2:0];
+         exponent_beta = exponent_two;
+         mantissa_beta[4] = sign_two;
+         mantissa_beta[3] = 1;
+         mantissa_beta[2:0] = number_two[2:0];
+      end
+
+      if (flag_normalize_alpha) begin
+         exponent_alpha = exponent_alpha + 1;
+         mantissa_alpha[3] = 0;
+      end
+      if (flag_normalize_beta) begin
+         exponent_beta = exponent_beta + 1;
+         mantissa_beta[3] = 0;
+      end
+
+      if (flag_shift_alpha) begin
+         exponent_alpha = exponent_alpha + 1;
+         mantissa_alpha = (mantissa_alpha >> 1);
+      end
+      if (flag_shift_beta) begin
+         exponent_beta = exponent_beta + 1;
+         mantissa_beta = (mantissa_beta >> 1);
+
+      if (flag_add)
+         exponent_gamma = exponent_alpha;
+         {overflow, mantissa_gamma} = {0, mantissa_alpha} + {0, mantissa_beta};
+      if (flag_exception)
+         exponent_gamma = 15;
+         mantissa_gamma = 0;
+      if (flag_normalize_gamma) begin
+         exponent_result = exponent_result + 1;
+         mantissa_result[3] = 0;
+      end
+   end
+
+   flag_alpha_exponent_bigger = (exponent_alpha > exponent_beta);
+   flag_beta_exponent_bigger = (exponent_beta > exponent_alpha);
+   flag_alpha_abnormal = (exponent_alpha == 0);
+   flag_beta_abnormal = (exponent_beta == 0);
+   flag_gamma_abnormal = (exponent_gamma == 0);
+   flag_overflow = overflow;
+
+   always @(posedge clock or posedge clear) begin
+      if (clear) begin
+         sign_one <= 0;
+         sign_two <= 0;
+         exponent_one <= 0;
+         exponent_two <= 0;
+         fraction_one <= 0;
+         fraction_two <= 0;
+         exponent_alpha <= 0;
+         exponent_beta <= 0;
+         exponent_gamma <= 0;
+         mantissa_alpha <= 0;
+         mantissa_beta <= 0;
+         mantissa_gamma <= 0;
+         overflow <= 0;
+      end
+      else begin
+         result <= {mantissa_gamma[3], exponent_gamma, mantissa_gamma[2:0]};
+      end
+   end
+endmodule: path_data
 
 module display(
    input clock,
@@ -105,152 +287,11 @@ module display(
    decoder the_decoder(decision, cathode);
 endmodule: display
 
-module path_control(
-   input clock,
-   input clear,
-   input alpha_canonical, // summand
-   input beta_canonical, // summand
-   output gamma_canonical, // summand
-   output reg control,
-);
-   reg [1:0] state;
-   reg [1:0] next;
-   assign alpha_abnormal = control[0];
-   assign beta_abnormal = control[0];
-   assign alpha_exponent_bigger = control[0];
-   assign beta_exponent_bigger = control[0];
-   assign valid = control[5];
-
-    
-   parameter start_s = 3'd0, normal_s = 3'b1, valid_s = 3'd2;
-    
-    always @(negedge clock or posedge clear) begin
-        if (clear) state = start_s;
-        else begin
-            state = next;
-        end
-    end
-    
-    always @(*) begin
-        case(state)
-            start_s: begin
-               if (start == 0)
-                  next = start_s; 
-               else if (start == 1)
-                  next = normal_s;
-            end
-            normal_s: next = valid_s;
-            valid_s: begin
-                 if (start) next = start_s; 
-                 else next = valid_s; 
-            end
-            default: next = start_s;
-        endcase
-    end
-    
-    always @(*) begin
-        case(state)
-            start_s: begin
-                start_bit = 1;
-                normal = 0;
-                valid = 0;
-            end
-            normal_s: begin
-                start_bit = 0;
-                normal = 1;
-                valid = 0;
-            end
-            valid_s: begin
-                start_bit = 0;
-                normal = 0;
-                valid = 1;
-            end
-        endcase
-    end
-endmodule: path_control
-
-module path_data(
-    input [7:0] a, b,
-    input clock, clear, start_bit, normal, 
-    output reg [7:0] result
-    );
-    integer a_int, b_int, sign_gt, sign_lt, mant_gt, mant_lt, exp_gt, exp_lt, sign_ans, exp_ans, mant_ans, hold;
-    
-    always @(posedge clock or posedge clear) begin
-      if (start_bit || clear) begin
-         result = 8'b0;
-         if (a[6:3] > b [6:3]) begin // same sign, alpha exponent bigger
-            sign_gt = a[7];
-            exp_gt = a[6:3];
-            mant_gt = a[2:0] + 8;
-            sign_lt = b[7];
-            exp_lt = b[6:3];
-            mant_lt = b[2:0] + 8;
-         end
-         else if (a[6:3] < b [6:3]) begin // same sign, beta exponent bigger
-            sign_gt = b[7];
-            exp_gt = b[6:3];
-            mant_gt = b[2:0] + 8;
-            sign_lt = a[7];
-            exp_lt = a[6:3];
-            mant_lt = a[2:0] + 8;
-         end
-         else if (a[2:0] > b [2:0]) begin // same exponent, alpha mantissa bigger
-               sign_gt = a[7];
-               exp_gt = a[6:3];
-               mant_gt = a[2:0] + 8;
-               sign_lt = b[7];
-               exp_lt = b[6:3];
-               mant_lt = b[2:0] + 8;
-         end
-         else if (a[2:0] < b [2:0]) begin // same exponent, beta mantissa bigger
-               sign_gt = b[7];
-               exp_gt = b[6:3];
-               mant_gt = b[2:0] + 8;
-               sign_lt = a[7];
-               exp_lt = a[6:3];
-               mant_lt = a[2:0] + 8;
-         end
-         exp_ans = exp_gt;
-         sign_ans = sign_gt;
-         mant_lt = mant_lt >> (exp_gt - exp_lt);
-         //perform operation
-         mant_ans = (
-            (sign_gt == sign_lt) ?
-            (mant_gt + mant_lt) :
-            (mant_gt - mant_lt)
-         );
-      end
-      else if (normal) begin
-         if (mant_ans[4] == 1) begin
-               while (mant_ans[4] == 1) begin
-                  hold = mant_ans[0];
-                  mant_ans = mant_ans >> 1;
-                  if (hold) mant_ans = mant_ans + 1; //round
-                  exp_ans = exp_ans +1;
-               end
-         end
-         else if (mant_ans[4] == 0 && mant_ans[3] == 0) begin
-               while (mant_ans[4] == 0 && mant_ans[3] == 0) begin
-                  hold = mant_ans[0];
-                  mant_ans = mant_ans << 1;
-                  //if (hold) mant_ans = mant_ans + 1; //round
-                  exp_ans = exp_ans -1;
-               end
-         end
-         result[7] = sign_ans;
-         result[6:3] = exp_ans;
-         result[2:0] = mant_ans[2:0];    
-      end
-    end
-endmodule: path_data
-
-
 
 module clock_enable(
    input [2:0] mode,
    input clock,
-   input reset,
+   input clear,
    output reg enable
 );
    parameter mode_fast = 2'b00;
@@ -270,8 +311,8 @@ module clock_enable(
       mode_slow:
          ratio = ratio_slow;
    endcase
-   always @(posedge clock or posedge reset) begin
-      if (reset) begin
+   always @(posedge clock or posedge clear) begin
+      if (clear) begin
          count  <= 1'b0;
          enable <= 1'b0;
       end

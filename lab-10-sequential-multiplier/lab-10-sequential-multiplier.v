@@ -78,7 +78,7 @@ module path_control(
    wire flag_zero = flag_control[0];
    wire flag_onset = flag_control[1];
 
-   always @ (posedge clock, posedge clear) begin
+   always @ (posedge clock or posedge clear) begin
       if (clear)
          state <= state_idle;
       else
@@ -90,22 +90,24 @@ module path_control(
       flag_decrease = 0;
       flag_add = 0;
       flag_shift = 0;
+      next = state_idle;
+      
       case (state)
          state_idle: begin
             if (start) begin
-               next = state_add;
                flag_load = 1;
+               next = state_add;
             end
          end
          state_add: begin
-            next = state_shift;
             flag_decrease = 1;
-            if (flag_zero)
+            if (flag_onset)
                flag_add = 1;
+            next = state_shift;
          end
          state_shift: begin
             flag_shift = 1;
-            if (flag_onset)
+            if (flag_zero)
                next = state_idle;
             else
                next = state_add;
@@ -198,7 +200,7 @@ endmodule: display
 module clock_enable(
    input [1:0] mode,
    input clock,
-   input reset,
+   input clear,
    output reg enable
 );
    parameter mode_fast = 2'b00;
@@ -218,8 +220,8 @@ module clock_enable(
       mode_slow:
          ratio = ratio_slow;
    endcase
-   always @(posedge clock or posedge reset) begin
-      if (reset) begin
+   always @(posedge clock or posedge clear) begin
+      if (clear) begin
          count  <= 1'b0;
          enable <= 1'b0;
       end

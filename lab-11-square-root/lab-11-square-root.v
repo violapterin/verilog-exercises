@@ -62,35 +62,35 @@ module path_control(
       flag_load = 0;
       flag_add = 0;
       flag_half = 0;
+      next = state_idle;
+      
       case(state)
          state_idle:
             if(start)
                next = state_load;
-               flag_load = 1;
             else
                next = state_idle;
          state_load:
+            flag_load = 1;
             if(flag_greater)
                next = state_half;
-               flag_half = 1;
             else
                next = state_add;
-               flag_add = 1;
          state_add:
+            flag_add = 1;
             if(flag_greater)
-               next = flag_half;
-               flag_half = 1;
+               next = state_half;
             else
                next = state_add;
-               flag_add = 1;
          state_half:
+            flag_half = 1;
             next = state_idle;
          default:
             next = state_idle;
       endcase;
    end
 
-   always @(negedge clock or posedge clear) begin
+   always @(posedge clock or posedge clear) begin
       if(clear)
          state <= idle;
       else
@@ -176,7 +176,7 @@ endmodule: display
 module clock_enable(
    input [2:0] mode,
    input clock,
-   input reset,
+   input clear,
    output reg enable
 );
    parameter mode_fast = 2'b00;
@@ -196,8 +196,8 @@ module clock_enable(
       mode_slow:
          ratio = ratio_slow;
    endcase
-   always @(posedge clock or posedge reset) begin
-      if (reset) begin
+   always @(posedge clock or posedge clear) begin
+      if (clear) begin
          count  <= 1'b0;
          enable <= 1'b0;
       end
