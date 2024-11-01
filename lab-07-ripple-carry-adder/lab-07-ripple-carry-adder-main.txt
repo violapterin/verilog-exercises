@@ -1,21 +1,51 @@
-﻿// Lab 6: seven segment display
-// Tzuyu Jeng, Oct 14, 2022
+﻿// Lab 7: Multibit adders
+// Tzuyu Jeng, Oct 19, 2022
 
 `timescale 1ns / 1ps
 
-module seven(
+module addition(
    input clock, input reset,
-   input [3:0] digit_1, input [3:0] digit_2,
-   input [3:0] digit_3, input [3:0] digit_4,
+   input [3:0] alpha, input [3:0] beta,
    output [3:0] anode, output [6:0] display
 );
    wire enable;
    wire [1:0] choice;
-   wire [3:0] decision;
-   clock_enable the_clock_enable(clock, reset, enable);
-   anode_driver the_anode_driver(enable, reset, choice, anode);
-   mux the_mux(digit_1, digit_2, digit_3, digit_4, choice, decision);
+   wire [6:0] decision;
+   wire [3:0] carry, sum;
+   clock_enable the_clock_enable(clock, enable);
+   anode_driver the_anode_driver(enable, choice, anode);
+   mux the_mux(sum, carry[3], beta, alpha, choice, decision);
    decoder the_decoder(decision, display);
+   ripple_adder the_ripple_adder(alpha, beta, carry, sum);
+endmodule
+ 
+ 
+module ripple_adder(
+   input [3:0] a, input [3:0] b,
+   output [3:0] c, output [3:0] s
+);
+   half_adder adder_1(a[0], b[0], c[0], s[0]);
+   full_adder adder_2(a[1], b[1], c[0], c[1], s[1]);
+   full_adder adder_3(a[2], b[2], c[1], c[2], s[2]);
+   full_adder adder_4(a[3], b[3], c[2], c[3], s[3]);
+endmodule
+
+module full_adder(
+   input a, input b, input c_i,
+   output c_o, output s 
+);
+   wire c_1, c_2, t;
+   half_adder adder_1(a, b, c_1, t);
+   half_adder adder_2(c_i, t, c_2, s);
+   or(c_o, c_1, c_2);
+endmodule
+
+module half_adder(
+   input a, input b,
+   output c, output s
+);
+   xor(s, a, b);
+   and(c, a, b);
 endmodule
 
 module clock_enable(
