@@ -3,7 +3,8 @@
 
 `timescale 1ns / 1ps
 
-module addition(
+// look ahead carry adder
+module addition_ahead(
    input clock, input reset,
    input [3:0] alpha, input [3:0] beta,
    output [3:0] anode, output [6:0] display
@@ -14,38 +15,81 @@ module addition(
    wire [3:0] carry, sum;
    clock_enable the_clock_enable(clock, enable);
    anode_driver the_anode_driver(enable, choice, anode);
-   mux the_mux(sum, carry[3], beta, alpha, choice, decision);
+   adder_ahead the_adder_ahead(alpha, beta, carry, sum);
+   mux the_mux(alpha, beta, carry, sum, choice, decision);
    decoder the_decoder(decision, display);
-   ripple_adder the_ripple_adder(alpha, beta, carry, sum);
 endmodule
  
- 
-module ripple_adder(
-   input [3:0] a, input [3:0] b,
-   output [3:0] c, output [3:0] s
+// ripple carry adder
+module addition_ripple(
+   input clock, input reset,
+   input [3:0] alpha, input [3:0] beta,
+   output [3:0] anode, output [6:0] display
 );
-   half_adder adder_1(a[0], b[0], c[0], s[0]);
-   full_adder adder_2(a[1], b[1], c[0], c[1], s[1]);
-   full_adder adder_3(a[2], b[2], c[1], c[2], s[2]);
-   full_adder adder_4(a[3], b[3], c[2], c[3], s[3]);
+   wire enable;
+   wire [1:0] choice;
+   wire [6:0] decision;
+   wire [3:0] carry, sum;
+   clock_enable the_clock_enable(clock, enable);
+   anode_driver the_anode_driver(enable, choice, anode);
+   adder_ripple the_adder_ripple(alpha, beta, carry, sum);
+   mux the_mux(alpha, beta, carry, sum, choice, decision);
+   decoder the_decoder(decision, display);
+endmodule
+
+module adder_ahead(
+   input [3:0] alpha, input [3:0] beta,
+   output [3:0] carry, output [3:0] sum
+);
+   xor(phi, alpha, beta);
+   and(chi, alpha, beta);
+   carry[0] = chi[0];
+   or(
+      carry[1],
+      chi[1],
+      and(phi[1], chi[0]),
+   );
+   or(
+      carry[2],
+      chi[2],
+      and(phi[2], chi[1]),
+      and(phi[2], phi[1], chi[0])
+   );
+   or(
+      carry[3],
+      chi[3],
+      and(phi[3], chi[2]),
+      and(phi[3], phi[2], chi[1]),
+      and(phi[3], phi[2], phi[1], chi[0])
+   );
+endmodule
+ 
+module adder_ripple(
+   input [3:0] alpha, input [3:0] beta,
+   output [3:0] carry, output [3:0] sum
+);
+   half_adder adder_1(alpha[0], beta[0], carry[0], sum[0]);
+   full_adder adder_2(alpha[1], beta[1], carry[0], carry[1], sum[1]);
+   full_adder adder_3(alpha[2], beta[2], carry[1], carry[2], sum[2]);
+   full_adder adder_4(alpha[3], beta[3], carry[2], carry[3], sum[3]);
 endmodule
 
 module full_adder(
-   input a, input b, input c_i,
-   output c_o, output s 
+   input alpha, input beta, input carry_in,
+   output carry_out, output sum 
 );
-   wire c_1, c_2, t;
-   half_adder adder_1(a, b, c_1, t);
-   half_adder adder_2(c_i, t, c_2, s);
-   or(c_o, c_1, c_2);
+   wire phi, theta, psi;
+   half_adder adder_1(alpha, beta, phi, psi);
+   half_adder adder_2(carry_in, psi, theta, sum);
+   or(carry_out, phi, theta);
 endmodule
 
 module half_adder(
-   input a, input b,
-   output c, output s
+   input alpha, input beta,
+   output carry, output sum
 );
-   xor(s, a, b);
-   and(c, a, b);
+   xor(sum, alpha, beta);
+   and(carry, alpha, beta);
 endmodule
 
 module clock_enable(
