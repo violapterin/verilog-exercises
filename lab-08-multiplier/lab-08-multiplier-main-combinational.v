@@ -56,15 +56,6 @@ module multiplier_array(
    wire w_3_1, w_3_2, w_3_3, w_3_4;
    wire w_4_1, w_4_2, w_4_3, w_4_4;
 
-module block(
-   input x, input y,
-   input sum_in, input carry_in,
-   output sum_out, output carry_out
-);
-   and(b, x, y);
-   full_adder full(sum_in, b, carry_in, carry_out, sum_out);
-endmodule
-
 
 module multiplier_combinational(
    input [3:0] a,
