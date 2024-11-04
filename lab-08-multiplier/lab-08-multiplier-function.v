@@ -3,12 +3,16 @@
 
 `timescale 1ns / 1ps
 
-module multiplication(
+module multiplication_combinational(
    input clock, input [3:0] alpha, input [3:0] beta,
    output [3:0] anode, output [6:0] cathode
 );
    wire [7:0] product;
-   multiplier the_multiplier(alpha, beta, product);
+   multiplier_combinational the_multiplier_combinational(
+      .alpha(alpha),
+      .beta(beta),
+      .product(product)
+   );
    display the_display(
       .clock(clock),
       .digit_1(alpha),
@@ -18,9 +22,51 @@ module multiplication(
       .anode(anode),
       .cathode(cathode)
    );
-endmodule: multiplication
+endmodule: multiplication_combinational
 
-module multiplier(
+module multiplication_array(
+   input clock, input [3:0] alpha, input [3:0] beta,
+   output [3:0] anode, output [6:0] cathode
+);
+   wire [7:0] product;
+   multiplier_array the_multiplier_array(
+      .alpha(alpha),
+      .beta(beta),
+      .product(product)
+   );
+   display the_display(
+      .clock(clock),
+      .digit_1(alpha),
+      .digit_2(beta),
+      .digit_3(product[7:4]),
+      .digit_4(product[3:0]),
+      .anode(anode),
+      .cathode(cathode)
+   );
+endmodule: multiplication_array
+
+
+module multiplier_array(
+   input [3:0] a,
+   input [3:0] b,
+   output [7:0] p
+);
+   wire w_1_1, w_1_2, w_1_3, w_1_4;
+   wire w_2_1, w_2_2, w_2_3, w_2_4;
+   wire w_3_1, w_3_2, w_3_3, w_3_4;
+   wire w_4_1, w_4_2, w_4_3, w_4_4;
+
+module block(
+   input x, input y,
+   input sum_in, input carry_in,
+   output sum_out, output carry_out
+);
+   and(b, x, y);
+   full_adder full(sum_in, b, carry_in, carry_out, sum_out);
+endmodule
+
+
+module multiplier_combinational(
    input [3:0] a,
    input [3:0] b,
    output [7:0] p
@@ -38,7 +84,7 @@ module multiplier(
    half_adder half_1_1(a[0]&b[1], a[1]&b[0], c_1_1, s_1_1);
    half_adder half_1_2(a[0]&b[2], a[1]&b[1], c_1_2, s_1_2);
    half_adder half_1_3(a[0]&b[3], a[1]&b[2], c_1_3, s_1_3);
-   full_adder half_1_4(a[1]&b[3], a[2]&b[2], c_1_3, c_1_4, s_1_4);
+   full_adder full_1_4(a[1]&b[3], a[2]&b[2], c_1_3, c_1_4, s_1_4);
 
    full_adder full_2_1(s_1_2, a[2]&b[0], c_1_1, c_2_1, s_2_1);
    full_adder full_2_2(s_1_3, a[2]&b[1], c_1_2, c_2_2, s_2_2);
@@ -178,18 +224,24 @@ module multiplexer(
 endmodule: multiplexer
 
 module anode_driver(
-   input enable,
-   output reg [1:0] choice,
-   output reg [3:0] anode
+   input enable, input reset,
+   output reg [1:0] choice, output reg [3:0] anode
 );
-   always @(posedge enable) begin
-     choice <= choice + 1;
-     case(choice)
-       4'b00: anode <= 4'b0111;
-       4'b01: anode <= 4'b1011;
-       4'b10: anode <= 4'b1101;
-       4'b11: anode <= 4'b1110;
-     endcase
+   always @(posedge enable or posedge reset) begin
+      if (reset == 1) begin
+         choice <= 0;
+      end
+      else if (enable == 1) begin
+         choice <= choice + 1;
+      end
+   end
+   always @(*) begin
+      case (choice)
+         4'b00: anode = 4'b0111;
+         4'b01: anode = 4'b1011;
+         4'b10: anode = 4'b1101;
+         4'b11: anode = 4'b1110;
+      endcase
    end
 endmodule: anode_driver
 

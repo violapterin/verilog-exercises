@@ -3,40 +3,6 @@
 
 `timescale 1ns / 1ps
 
-// look ahead carry adder
-module addition_ahead(
-   input clock, input reset,
-   input [3:0] alpha, input [3:0] beta,
-   output [3:0] anode, output [6:0] display
-);
-   wire enable;
-   wire [1:0] choice;
-   wire [6:0] decision;
-   wire [3:0] carry, sum;
-   clock_enable the_clock_enable(clock, enable);
-   anode_driver the_anode_driver(enable, choice, anode);
-   adder_ahead the_adder_ahead(alpha, beta, carry, sum);
-   mux the_mux(alpha, beta, carry, sum, choice, decision);
-   decoder the_decoder(decision, display);
-endmodule
- 
-// ripple carry adder
-module addition_ripple(
-   input clock, input reset,
-   input [3:0] alpha, input [3:0] beta,
-   output [3:0] anode, output [6:0] display
-);
-   wire enable;
-   wire [1:0] choice;
-   wire [6:0] decision;
-   wire [3:0] carry, sum;
-   clock_enable the_clock_enable(clock, enable);
-   anode_driver the_anode_driver(enable, choice, anode);
-   adder_ripple the_adder_ripple(alpha, beta, carry, sum);
-   mux the_mux(alpha, beta, carry, sum, choice, decision);
-   decoder the_decoder(decision, display);
-endmodule
-
 module adder_ahead(
    input [3:0] alpha, input [3:0] beta,
    output [3:0] carry, output [3:0] sum
@@ -113,7 +79,7 @@ module clock_enable(
    end
 endmodule
 
-module mux(
+module multiplexer(
    input [3:0] digit_1, input [3:0] digit_2,
    input [3:0] digit_3, input [3:0] digit_4,
    input [1:0] choice,
@@ -139,15 +105,17 @@ module anode_driver(
       end
       else if (enable == 1) begin
          choice <= choice + 1;
-         case (choice)
-            4'b00: anode <= 4'b0111;
-            4'b01: anode <= 4'b1011;
-            4'b10: anode <= 4'b1101;
-            4'b11: anode <= 4'b1110;
-         endcase
       end
    end
-endmodule
+   always @(*) begin
+      case (choice)
+         4'b00: anode = 4'b0111;
+         4'b01: anode = 4'b1011;
+         4'b10: anode = 4'b1101;
+         4'b11: anode = 4'b1110;
+      endcase
+   end
+endmodule: anode_driver
 
 module decoder(
    input [3:0] decision,
