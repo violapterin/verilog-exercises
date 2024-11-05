@@ -24,39 +24,6 @@ module multiplication_combinational(
    );
 endmodule: multiplication_combinational
 
-module multiplication_array(
-   input clock, input [3:0] alpha, input [3:0] beta,
-   output [3:0] anode, output [6:0] cathode
-);
-   wire [7:0] product;
-   multiplier_array the_multiplier_array(
-      .alpha(alpha),
-      .beta(beta),
-      .product(product)
-   );
-   display the_display(
-      .clock(clock),
-      .digit_1(alpha),
-      .digit_2(beta),
-      .digit_3(product[7:4]),
-      .digit_4(product[3:0]),
-      .anode(anode),
-      .cathode(cathode)
-   );
-endmodule: multiplication_array
-
-
-module multiplier_array(
-   input [3:0] a,
-   input [3:0] b,
-   output [7:0] p
-);
-   wire w_1_1, w_1_2, w_1_3, w_1_4;
-   wire w_2_1, w_2_2, w_2_3, w_2_4;
-   wire w_3_1, w_3_2, w_3_3, w_3_4;
-   wire w_4_1, w_4_2, w_4_3, w_4_4;
-
-
 module multiplier_combinational(
    input [3:0] a,
    input [3:0] b,

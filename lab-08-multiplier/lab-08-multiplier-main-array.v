@@ -3,27 +3,6 @@
 
 `timescale 1ns / 1ps
 
-module multiplication_combinational(
-   input clock, input [3:0] alpha, input [3:0] beta,
-   output [3:0] anode, output [6:0] cathode
-);
-   wire [7:0] product;
-   multiplier_combinational the_multiplier_combinational(
-      .alpha(alpha),
-      .beta(beta),
-      .product(product)
-   );
-   display the_display(
-      .clock(clock),
-      .digit_1(alpha),
-      .digit_2(beta),
-      .digit_3(product[7:4]),
-      .digit_4(product[3:0]),
-      .anode(anode),
-      .cathode(cathode)
-   );
-endmodule: multiplication_combinational
-
 module multiplication_array(
    input clock, input [3:0] alpha, input [3:0] beta,
    output [3:0] anode, output [6:0] cathode
@@ -45,7 +24,6 @@ module multiplication_array(
    );
 endmodule: multiplication_array
 
-
 module multiplier_array(
    input [3:0] a,
    input [3:0] b,
@@ -56,56 +34,22 @@ module multiplier_array(
    wire w_3_1, w_3_2, w_3_3, w_3_4;
    wire w_4_1, w_4_2, w_4_3, w_4_4;
 
+   row_block(a0, w11, 0, 0,)
+endmodule: multiplier_array
+
+module row_block(
+   a0, w11, 0, 0,
+);
+
 module block(
-   input x, input y,
+   input phi, input chi,
    input sum_in, input carry_in,
    output sum_out, output carry_out
 );
-   and(b, x, y);
-   full_adder full(sum_in, b, carry_in, carry_out, sum_out);
+   and(beta, phi, chi);
+   full_adder full(beta, sum_in, carry_in, carry_out, sum_out);
 endmodule
 
-
-module multiplier_combinational(
-   input [3:0] a,
-   input [3:0] b,
-   output [7:0] p
-);
-   wire c_1_1, c_1_2, c_1_3, c_1_4;
-   wire c_2_1, c_2_2, c_2_3, c_2_4;
-   wire c_3_1, c_3_2, c_3_3, c_3_4;
-   wire c_4_1, c_4_2, c_4_3, c_4_4;
-
-   wire s_1_1, s_1_2, s_1_3, s_1_4;
-   wire s_2_1, s_2_2, s_2_3, s_2_4;
-   wire s_3_1, s_3_2, s_3_3, s_3_4;
-   wire s_4_1, s_4_2, s_4_3, s_4_4;
-
-   half_adder half_1_1(a[0]&b[1], a[1]&b[0], c_1_1, s_1_1);
-   half_adder half_1_2(a[0]&b[2], a[1]&b[1], c_1_2, s_1_2);
-   half_adder half_1_3(a[0]&b[3], a[1]&b[2], c_1_3, s_1_3);
-   full_adder full_1_4(a[1]&b[3], a[2]&b[2], c_1_3, c_1_4, s_1_4);
-
-   full_adder full_2_1(s_1_2, a[2]&b[0], c_1_1, c_2_1, s_2_1);
-   full_adder full_2_2(s_1_3, a[2]&b[1], c_1_2, c_2_2, s_2_2);
-   full_adder full_2_3(s_1_4, a[3]&b[1], c_2_2, c_2_3, s_2_3);
-   full_adder full_2_4(a[2]&b[3], a[3]&b[2], c_1_4, c_2_4, s_2_4);
-
-   full_adder full_3_1(s_2_2, a[3]&b[0], c_2_1, c_3_1, s_3_1);
-   half_adder half_3_2(c_3_1, s_2_3, c_3_2, s_3_2);
-   full_adder full_3_3(c_2_3, s_2_4, c_3_2, c_3_3, s_3_3);
-   full_adder full_3_4(c_2_4, a[3]&b[3], c_3_3, c_3_4, s_3_4);
-
-   and(p[0], a[0], b[0]);
-   assign p[1] = s_1_1;
-   assign p[2] = s_2_1;
-   assign p[3] = s_3_1;
-   assign p[4] = s_3_2;
-   assign p[5] = s_3_3;
-   assign p[6] = s_3_4;
-   assign p[7] = c_3_4;
-endmodule: multiplier
- 
 module ripple_adder(
    input [3:0] a,
    input [3:0] b,

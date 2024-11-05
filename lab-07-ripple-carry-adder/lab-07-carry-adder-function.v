@@ -7,27 +7,24 @@ module adder_ahead(
    input [3:0] alpha, input [3:0] beta,
    output [3:0] carry, output [3:0] sum
 );
+   wire [3:0] phi, chi;
    xor(phi, alpha, beta);
    and(chi, alpha, beta);
+
+   wire theta_1_1;
+   wire theta_2_1, theta_2_2;
+   wire theta_3_1, theta_3_2, theta_3_3;
+   and(theta_1_1, phi[1], chi[0]),
+   and(theta_2_1, phi[2], chi[1]),
+   and(theta_2_2, phi[2], phi[1], chi[0])
+   and(theta_3_1, phi[3], chi[2]),
+   and(theta_3_2, phi[3], phi[2], chi[1]),
+   and(theta_3_3, phi[3], phi[2], phi[1], chi[0])
+
    carry[0] = chi[0];
-   or(
-      carry[1],
-      chi[1],
-      and(phi[1], chi[0]),
-   );
-   or(
-      carry[2],
-      chi[2],
-      and(phi[2], chi[1]),
-      and(phi[2], phi[1], chi[0])
-   );
-   or(
-      carry[3],
-      chi[3],
-      and(phi[3], chi[2]),
-      and(phi[3], phi[2], chi[1]),
-      and(phi[3], phi[2], phi[1], chi[0])
-   );
+   or(carry[1], chi[1], theta_1_1);
+   or(carry[2], chi[2], theta_2_1, theta_2_2);
+   or(carry[3], chi[3], theta_3_1, theta_3_2, theta_3_3);
 endmodule
  
 module adder_ripple(
@@ -44,10 +41,10 @@ module full_adder(
    input alpha, input beta, input carry_in,
    output carry_out, output sum 
 );
-   wire phi, theta, psi;
+   wire phi, chi, psi;
    half_adder adder_1(alpha, beta, phi, psi);
-   half_adder adder_2(carry_in, psi, theta, sum);
-   or(carry_out, phi, theta);
+   half_adder adder_2(carry_in, psi, chi, sum);
+   or(carry_out, phi, chi);
 endmodule
 
 module half_adder(
