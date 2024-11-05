@@ -63,17 +63,15 @@ module display(
 endmodule: display
 
 module clock_enable(
-   input [1:0] mode,
-   input clock,
-   input reset,
+   input [1:0] mode, input clock, input reset,
    output reg enable
 );
    parameter mode_fast = 2'b00;
    parameter mode_moderate = 2'b01;
    parameter mode_slow = 2'b10;
-   parameter ratio_fast = 16;
-   parameter ratio_moderate = 2048;
-   parameter ratio_slow = 524288;
+   parameter ratio_fast = 64;
+   parameter ratio_moderate = 4096;
+   parameter ratio_slow = 262144;
    reg [16:0] count;
    wire [19:0] ratio;
 
@@ -85,6 +83,7 @@ module clock_enable(
       mode_slow:
          ratio = ratio_slow;
    endcase
+   
    always @(posedge clock or posedge reset) begin
       if (reset) begin
          count  <= 1'b0;

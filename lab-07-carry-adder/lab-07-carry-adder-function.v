@@ -14,14 +14,14 @@ module adder_ahead(
    wire theta_1_1;
    wire theta_2_1, theta_2_2;
    wire theta_3_1, theta_3_2, theta_3_3;
-   and(theta_1_1, phi[1], chi[0]),
-   and(theta_2_1, phi[2], chi[1]),
-   and(theta_2_2, phi[2], phi[1], chi[0])
-   and(theta_3_1, phi[3], chi[2]),
-   and(theta_3_2, phi[3], phi[2], chi[1]),
-   and(theta_3_3, phi[3], phi[2], phi[1], chi[0])
+   and(theta_1_1, phi[1], chi[0]);
+   and(theta_2_1, phi[2], chi[1]);
+   and(theta_2_2, phi[2], phi[1], chi[0]);
+   and(theta_3_1, phi[3], chi[2]);
+   and(theta_3_2, phi[3], phi[2], chi[1]);
+   and(theta_3_3, phi[3], phi[2], phi[1], chi[0]);
 
-   carry[0] = chi[0];
+   assign carry[0] = chi[0];
    or(carry[1], chi[1], theta_1_1);
    or(carry[2], chi[2], theta_2_1, theta_2_2);
    or(carry[3], chi[3], theta_3_1, theta_3_2, theta_3_3);

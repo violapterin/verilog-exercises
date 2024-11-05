@@ -13,6 +13,7 @@ module seven_segment_display(
    wire [1:0] choice;
    wire [3:0] decision;
    clock_enable the_clock_enable(
+      .mode(2'b01),
       .clock(clock),
       .reset(reset),
       .enable(enable)
