@@ -55,26 +55,69 @@ module half_adder(
    and(carry, alpha, beta);
 endmodule
 
-module clock_enable(
+module seven_segment_display(
    input clock, input reset,
-   output reg enable
+   input [3:0] digit_1, input [3:0] digit_2,
+   input [3:0] digit_3, input [3:0] digit_4,
+   output [3:0] anode, output [6:0] cathode
 );
-   reg [16:0] count;
-   always @(posedge clock or posedge reset) begin
-      if (reset == 1) begin
-         count <= 0;
-         enable <= 0;
-      end
-      else if (count == 4095) begin
-         count <= 0;
-         enable <= 1;
-      end
-      else begin
-         count <= count + 1;
-         enable <= 0;
-      end
+   wire enable;
+   wire [1:0] choice;
+   wire [3:0] decision;
+   clock_enable the_clock_enable(
+      .mode(2'b01),
+      .clock(clock),
+      .reset(reset),
+      .enable(enable)
+   );
+   anode_driver the_anode_driver(
+      .enable(enable),
+      .reset(reset),
+      .choice(choice),
+      .anode(anode)
+   );
+   multiplexer the_multiplexer(
+      .digit_1(digit_1),
+      .digit_2(digit_2),
+      .digit_3(digit_3),
+      .digit_4(digit_4),
+      .choice(choice),
+      .decision(decision)
+   );
+   decoder the_decoder(
+      .decision(decision),
+      .cathode(cathode)
+   );
+endmodule: seven_segment_display
+
+module decoder(
+   input [3:0] decision,
+   output reg [6:0] cathode
+);
+   always @(*) begin
+      case (decision)
+         4'b0000: cathode = 7'b0000001;
+         4'b0001: cathode = 7'b1001111;
+         4'b0010: cathode = 7'b0010010;
+         4'b0011: cathode = 7'b0000110;
+
+         4'b0100: cathode = 7'b1001100;
+         4'b0101: cathode = 7'b0100100;
+         4'b0110: cathode = 7'b0100000;
+         4'b0111: cathode = 7'b0001111;  
+
+         4'b1000: cathode = 7'b0000000;
+         4'b1001: cathode = 7'b0000100;
+         4'b1010: cathode = 7'b0001000;
+         4'b1011: cathode = 7'b1100000;
+
+         4'b1100: cathode = 7'b0110001;
+         4'b1101: cathode = 7'b1000010;
+         4'b1110: cathode = 7'b0110000;
+         4'b1111: cathode = 7'b0111000;
+      endcase
    end
-endmodule
+endmodule: decoder
 
 module multiplexer(
    input [3:0] digit_1, input [3:0] digit_2,
@@ -90,7 +133,7 @@ module multiplexer(
          4'b11: decision = digit_4;
       endcase
    end
-endmodule
+endmodule: multiplexer
 
 module anode_driver(
    input enable, input reset,
@@ -114,31 +157,37 @@ module anode_driver(
    end
 endmodule: anode_driver
 
-module decoder(
-   input [3:0] decision,
-   output reg [6:0] display
+module clock_enable(
+   input [1:0] mode, input clock, input reset,
+   output reg enable
 );
-   always @(*) begin
-      case (decision)
-         4'b0000: display = 7'b0000001;
-         4'b0001: display = 7'b1001111;
-         4'b0010: display = 7'b0010010;
-         4'b0011: display = 7'b0000110;
+   parameter mode_fast = 2'b00;
+   parameter mode_moderate = 2'b01;
+   parameter mode_slow = 2'b10;
+   parameter ratio_fast = 18'h0080;
+   parameter ratio_moderate = 18'h0800;
+   parameter ratio_slow = 16'h8000;
+   reg [16:0] count;
+   reg [18:0] ratio;
 
-         4'b0100: display = 7'b1001100;
-         4'b0101: display = 7'b0100100;
-         4'b0110: display = 7'b0100000;
-         4'b0111: display = 7'b0001111;  
-
-         4'b1000: display = 7'b0000000;
-         4'b1001: display = 7'b0000100;
-         4'b1010: display = 7'b0001000;
-         4'b1011: display = 7'b1100000;
-
-         4'b1100: display = 7'b0110001;
-         4'b1101: display = 7'b1000010;
-         4'b1110: display = 7'b0110000;
-         4'b1111: display = 7'b0111000;
-      endcase
+   case (mode)    
+      mode_fast: ratio = ratio_fast;
+      mode_moderate: ratio = ratio_moderate;
+      mode_slow: ratio = ratio_slow;
+   endcase
+   
+   always @(posedge clock or posedge reset) begin
+      if (reset) begin
+         count  <= 1'b0;
+         enable <= 1'b0;
+      end
+      else if (count == ratio - 1) begin
+         count  <= 1'b0;
+         enable <= 1'b1;
+      end
+      else begin
+         count  <= count + 1'b1;
+         enable <= 1'b0;
+      end
    end
-endmodule
+endmodule: clock_enable

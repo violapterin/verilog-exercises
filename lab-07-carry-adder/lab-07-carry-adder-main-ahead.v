@@ -7,37 +7,25 @@
 module addition_ahead(
    input clock, input reset,
    input [3:0] alpha, input [3:0] beta,
-   output [3:0] anode, output [6:0] display
+   output [3:0] anode, output [6:0] cathode
 );
-   wire enable;
-   wire [1:0] choice;
-   wire [6:0] decision;
-   wire [3:0] carry, sum;
-   clock_enable the_clock_enable(
-      .clock(clock),
-      .enable(enable)
-   );
-   anode_driver the_anode_driver(
-      .enable(enable),
-      .choice(choice),
-      .anode(anode)
-   );
-   adder_ahead the_adder_ahead(
+   wire [3:0] carry;
+   wire [3:0] sum;
+   adder_ahead the_adder(
       .alpha(alpha),
       .beta(beta),
       .carry(carry),
       .sum(sum)
    );
-   multiplexer the_multiplexer(
-      .alpha(alpha),
-      .beta(beta),
-      .carry(carry),
-      .sum(sum),
-      .choice(choice),
-      .decision(decision)
-   );
-   decoder the_decoder(
-      .decision(decision),
-      .display(display)
+   seven_segment_display the_display(
+      .clock(clock),
+      .reset(reset),
+      .digit_1(alpha),
+      .digit_2(beta),
+      .digit_3(carry),
+      .digit_4(sum),
+      .anode(anode),
+      .cathode(cathode)
    );
 endmodule: addition_ahead
+

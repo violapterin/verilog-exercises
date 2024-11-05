@@ -77,19 +77,16 @@ module clock_enable(
    parameter mode_fast = 2'b00;
    parameter mode_moderate = 2'b01;
    parameter mode_slow = 2'b10;
-   parameter ratio_fast = 64;
-   parameter ratio_moderate = 4096;
-   parameter ratio_slow = 262144;
+   parameter ratio_fast = 18'h0080;
+   parameter ratio_moderate = 18'h0800;
+   parameter ratio_slow = 16'h8000;
    reg [16:0] count;
-   wire [19:0] ratio;
+   reg [18:0] ratio;
 
    case (mode)    
-      mode_fast:
-         ratio = ratio_fast;
-      mode_moderate:
-         ratio = ratio_moderate;
-      mode_slow:
-         ratio = ratio_slow;
+      mode_fast: ratio = ratio_fast;
+      mode_moderate: ratio = ratio_moderate;
+      mode_slow: ratio = ratio_slow;
    endcase
    
    always @(posedge clock or posedge reset) begin
