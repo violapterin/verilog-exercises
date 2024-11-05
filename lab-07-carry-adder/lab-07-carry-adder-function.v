@@ -5,8 +5,9 @@
 
 module adder_ahead(
    input [3:0] alpha, input [3:0] beta,
-   output [3:0] carry, output [3:0] sum
+   output [7:0] sum
 );
+   wire [3:0] gamma;
    wire [3:0] phi, chi;
    xor(phi, alpha, beta);
    and(chi, alpha, beta);
@@ -21,20 +22,24 @@ module adder_ahead(
    and(theta_3_2, phi[3], phi[2], chi[1]);
    and(theta_3_3, phi[3], phi[2], phi[1], chi[0]);
 
-   assign carry[0] = chi[0];
-   or(carry[1], chi[1], theta_1_1);
-   or(carry[2], chi[2], theta_2_1, theta_2_2);
-   or(carry[3], chi[3], theta_3_1, theta_3_2, theta_3_3);
+   assign gamma[0] = chi[0];
+   or(gamma[1], chi[1], theta_1_1);
+   or(gamma[2], chi[2], theta_2_1, theta_2_2);
+   or(gamma[3], chi[3], theta_3_1, theta_3_2, theta_3_3);
+   assign sum[3:0] = gamma;
+   xor(sum[7:4], phi, gamma);
 endmodule
  
 module adder_ripple(
    input [3:0] alpha, input [3:0] beta,
-   output [3:0] carry, output [3:0] sum
+   output [7:0] sum
 );
-   half_adder adder_1(alpha[0], beta[0], carry[0], sum[0]);
-   full_adder adder_2(alpha[1], beta[1], carry[0], carry[1], sum[1]);
-   full_adder adder_3(alpha[2], beta[2], carry[1], carry[2], sum[2]);
-   full_adder adder_4(alpha[3], beta[3], carry[2], carry[3], sum[3]);
+   wire [3:0] gamma;
+   half_adder adder_1(alpha[0], beta[0], gamma[0], sum[0]);
+   full_adder adder_2(alpha[1], beta[1], gamma[0], gamma[1], sum[1]);
+   full_adder adder_3(alpha[2], beta[2], gamma[1], gamma[2], sum[2]);
+   full_adder adder_4(alpha[3], beta[3], gamma[2], gamma[3], sum[3]);
+   assign sum[7:4] = {3'b000, gamma[3]};
 endmodule
 
 module full_adder(
@@ -164,17 +169,19 @@ module clock_enable(
    parameter mode_fast = 2'b00;
    parameter mode_moderate = 2'b01;
    parameter mode_slow = 2'b10;
-   parameter ratio_fast = 18'h0080;
-   parameter ratio_moderate = 18'h0800;
+   parameter ratio_fast = 16'h0080;
+   parameter ratio_moderate = 16'h0800;
    parameter ratio_slow = 16'h8000;
    reg [16:0] count;
-   reg [18:0] ratio;
+   reg [16:0] ratio;
 
-   case (mode)    
-      mode_fast: ratio = ratio_fast;
-      mode_moderate: ratio = ratio_moderate;
-      mode_slow: ratio = ratio_slow;
-   endcase
+   always @(*) begin
+      case (mode)    
+         mode_fast: ratio = ratio_fast;
+         mode_moderate: ratio = ratio_moderate;
+         mode_slow: ratio = ratio_slow;
+      endcase
+   end
    
    always @(posedge clock or posedge reset) begin
       if (reset) begin

@@ -9,12 +9,10 @@ module addition_ahead(
    input [3:0] alpha, input [3:0] beta,
    output [3:0] anode, output [6:0] cathode
 );
-   wire [3:0] carry;
-   wire [3:0] sum;
+   wire [7:0] sum;
    adder_ahead the_adder(
       .alpha(alpha),
       .beta(beta),
-      .carry(carry),
       .sum(sum)
    );
    seven_segment_display the_display(
@@ -22,8 +20,8 @@ module addition_ahead(
       .reset(reset),
       .digit_1(alpha),
       .digit_2(beta),
-      .digit_3(carry),
-      .digit_4(sum),
+      .digit_3(sum[7:4]),
+      .digit_4(sum[3:0]),
       .anode(anode),
       .cathode(cathode)
    );
