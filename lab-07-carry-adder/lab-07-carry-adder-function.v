@@ -9,25 +9,25 @@ module adder_ahead(
 );
    wire [3:0] gamma;
    wire [3:0] phi, chi;
-   xor(phi, alpha, beta);
-   and(chi, alpha, beta);
+   assign phi = alpha ^ beta;
+   assign chi = alpha & beta;
 
    wire theta_1_1;
    wire theta_2_1, theta_2_2;
    wire theta_3_1, theta_3_2, theta_3_3;
-   and(theta_1_1, phi[1], chi[0]);
-   and(theta_2_1, phi[2], chi[1]);
-   and(theta_2_2, phi[2], phi[1], chi[0]);
-   and(theta_3_1, phi[3], chi[2]);
-   and(theta_3_2, phi[3], phi[2], chi[1]);
-   and(theta_3_3, phi[3], phi[2], phi[1], chi[0]);
+   assign theta_1_1 = phi[1] && chi[0];
+   assign theta_2_1 = phi[2] && chi[1];
+   assign theta_2_2 = phi[2] && phi[1] && chi[0];
+   assign theta_3_1 = phi[3] && chi[2];
+   assign theta_3_2 = phi[3] && phi[2] && chi[1];
+   assign theta_3_3 = phi[3] && phi[2] && phi[1] && chi[0];
 
    assign gamma[0] = chi[0];
-   or(gamma[1], chi[1], theta_1_1);
-   or(gamma[2], chi[2], theta_2_1, theta_2_2);
-   or(gamma[3], chi[3], theta_3_1, theta_3_2, theta_3_3);
-   assign sum[3:0] = gamma;
-   xor(sum[7:4], phi, gamma);
+   assign gamma[1] = chi[1] || theta_1_1;
+   assign gamma[2] = chi[2] || theta_2_1 || theta_2_2;
+   assign gamma[3] = chi[3] || theta_3_1 || theta_3_2 || theta_3_3;
+   assign sum[3:0] = phi ^ {1'b0, gamma[2:0]};
+   assign sum[7:4] = {3'b000, gamma[3]};
 endmodule
  
 module adder_ripple(

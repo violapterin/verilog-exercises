@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module multiplication_combinational(
+module multiplication_naive(
    input clock, input reset,
    input [3:0] alpha, input [3:0] beta,
    output [3:0] anode, output [6:0] cathode
@@ -24,5 +24,5 @@ module multiplication_combinational(
       .anode(anode),
       .cathode(cathode)
    );
-endmodule: multiplication_combinational
+endmodule: multiplication_naive
 
