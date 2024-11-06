@@ -26,7 +26,7 @@ module adder_ahead(
    assign gamma[1] = chi[1] || theta_1_1;
    assign gamma[2] = chi[2] || theta_2_1 || theta_2_2;
    assign gamma[3] = chi[3] || theta_3_1 || theta_3_2 || theta_3_3;
-   assign sum[3:0] = phi ^ {1'b0, gamma[2:0]};
+   assign sum[3:0] = phi ^ {gamma[2:0], 1'b0};
    assign sum[7:4] = {3'b000, gamma[3]};
 endmodule
  
