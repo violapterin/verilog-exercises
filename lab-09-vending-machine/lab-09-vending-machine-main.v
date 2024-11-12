@@ -5,7 +5,7 @@
 
 module vending_machine (
    input clock, 
-   input clear,
+   input reset,
    input [2:0] button, 
    input [3:0] switch,
    output [3:0] anode,  
@@ -19,13 +19,11 @@ module vending_machine (
    
    vendor the_vendor(
       .clock(clock),
-      .clear(clear),
+      .reset(reset),
       .button(button),
       .switch(switch),
       .amount(amount),
-      .cost(cost),
-      .state(state),
-      .next(next)
+      .cost(cost)
    );
    seven_segment_display the_display(
       .clock(clock),

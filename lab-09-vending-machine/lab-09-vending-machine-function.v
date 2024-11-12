@@ -5,24 +5,24 @@
 
 module vendor(
    input clock,
-   input clear,
+   input reset,
    input [2:0] button,
    input [3:0] switch,
    output reg [7:0] amount,
    output reg [7:0] cost
 );
-   parameter entered_00 = 4'b0000,
+   parameter entered_00 = 4'b0000;
    parameter entered_05 = 4'b0001;
-   parameter entered_10 = 4'b0010,
+   parameter entered_10 = 4'b0010;
    parameter entered_15 = 4'b0011;
-   parameter entered_20 = 4'b0100,
+   parameter entered_20 = 4'b0100;
    parameter entered_25 = 4'b0101;
-   parameter entered_30 = 4'b0110,
+   parameter entered_30 = 4'b0110;
    parameter entered_35 = 4'b0111;
 
-   parameter change_00  = 4'b1000,
-   paramter  change_05  = 4'b1001;
-   parameter change_10  = 4'b1010,
+   parameter change_00  = 4'b1000;
+   parameter change_05  = 4'b1001;
+   parameter change_10  = 4'b1010;
    parameter change_15  = 4'b1011;
    parameter change_20  = 4'b1100;
 
@@ -36,10 +36,10 @@ module vendor(
    parameter nickel     = 3'd1;
 
    wire enable;
-   wire [3:0] state;
-   wire [3:0] next;
+   reg [3:0] state;
+   reg [3:0] next;
 
-   clock_enable the_clock_slow(2, clock, enable);
+   clock_enable the_clock_slow(2, clock, reset, enable);
    
    always @(*) begin
       case(state)
@@ -157,8 +157,8 @@ module vendor(
       endcase
    end
 
-   always @(posedge enable or posedge clear) begin
-      if (clear)
+   always @(posedge enable or posedge reset) begin
+      if (reset)
          state <= entered_00;
       else
          state <= next;
@@ -172,7 +172,9 @@ module vendor(
          product_30: cost = 8'd30;
          default: cost = 8'h00;
       endcase
+   end
       
+   always @(*) begin
       case(state)
          entered_00: amount = 8'd00;
          entered_05: amount = 8'd05;
