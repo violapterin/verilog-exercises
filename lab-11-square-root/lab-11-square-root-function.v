@@ -21,13 +21,7 @@ module path_control(
    reg [1:0] next;
 
    always @(*) begin
-      flag_greater = 0;
-      flag_load = 0;
-      flag_add = 0;
-      flag_half = 0;
-      next = state_idle;
-      
-      case(state)
+      case (state)
          state_idle: begin
             if (start)
                next = state_load;
@@ -35,68 +29,117 @@ module path_control(
                next = state_idle;
          end
          state_load: begin
-            action_half = 1;
-            next = state_add;
-         end
-         state_add: begin
-            action_half = 1;
+            action_load = 1;
             if (flag_greater)
                next = state_half;
             else
                next = state_add;
          end
+         state_add: begin
+            action_add = 1;
+            next = state_load;
+         end
          state_half: begin
             action_half = 1;
             next = state_idle;
          end
-         default:
+         default: begin
             next = state_idle;
+         end
       endcase
    end
 
    always @(negedge clock or posedge reset) begin
-      if (reset)
-         state <= idle;
-      else
+      if (reset) begin
+         action_load <= 0;
+         action_add <= 0;
+         action_half <= 0;
+         state <= state_idle;
+      end
+      else begin
          state <= next;
+      end
    end
 endmodule: path_control
 
 module path_data(
    input clock,
    input reset,
-   input [7:0] number,
+   input [7:0] alpha,
    input action_load,
    input action_add,
    input action_half,
    output flag_greater,
-   output result
+   output reg root
 );
-   reg [7:0] alpha;
-   reg [7:0] delta;
-   reg [7:0] square;
+   reg [7:0] delta, delta_next;
+   reg [7:0] square, square_next;
 
    always @(posedge clock or posedge reset) begin
       if (reset) begin
-         alpha <= 0;
          delta <= 3;
          square <= 1;
-         result <= 0;
+         root <= 0;
       end
-      else if (flag_load) begin
-         alpha <= number;
+      else if (action_load) begin
+         square_next <= square + delta;
+         delta_next <= delta + 2;
       end
-      else if (flag_add) begin
-         square <= square + delta;
-         delta <= delta + 2;
+      else if (action_add) begin
+         square <= square_next;
+         delta <= delta_next;
       end
-      else if (flag_half) begin
-         result <= (delta >> 1) - 1;
+      else if (action_half) begin
+         root <= (delta >> 1) - 1;
       end
    end
    
-   flag_greater = (square > alpha);
+   assign flag_greater = (square > alpha);
 endmodule: path_data
+
+// // // // // // // // // // // // // // // // // //
+// // // // // // // // // // // // // // // // // //
+
+module convert_base(
+   input [7:0] hexadecimal,
+   output [11:0] decimal
+)
+   reg shift_1, shift_2, shift_3;
+   reg remain_1, remain_2, remain_3;
+   always @(*) begin
+      shift_1 = hexadecimal / 10;
+      shift_2 = hexadecimal / 100;
+      shift_3 = hexadecimal / 1000;
+   end
+
+   always @(*) begin
+      remain_1 = hexadecimal - 10 * shift_1;
+      remain_2 = shift_1 - 10 * shift_2;
+      remain_3 = shift_2 - 10 * shift_3;
+   end
+
+   assign decimal = {remain_3, remain_2, remain_1};
+endmodule: convert_base
+
+module show_result(
+   input reset(reset),
+   input start(start),
+   input alpha(alpha),
+   input root(root),
+   output reg result(result)
+);
+   always @(posedge reset or posedge start) begin
+      if (reset) begin
+         result <= alpha;
+      end
+      else if (start) begin
+         result <= root;
+      end
+   end
+endmodule: show_result
+
+// // // // // // // // // // // // // // // // // //
+// // // // // // // // // // // // // // // // // //
 
 module seven_segment_display(
    input clock, input reset,

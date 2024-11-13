@@ -5,34 +5,54 @@
 `timescale 1ns / 1ps
 
 module square_root(
-   input clock, input reset,
+   input clock, input reset, input start,
    input [3:0] alpha,
    output [3:0] anode,  
    output [6:0] cathode,
 );
-   wire [5:0] control;
-   
-   module path_control(
+   wire action_load, action_add, action_half;
+   wire flag_greater;
+   wire [7:0] root_hexadecimal;
+   wire [11:0] root_decimal;
+   wire [11:0] number;
+
+   path_control(
       .clock(clock),
       .reset(reset),
       .start(start),
-      .control(control),
-      .valid(valid)
+      .flag_greater(flag_greater),
+      .action_load(action_load),
+      .action_add(action_add),
+      .action_half(action_half)
    );
-   module path_data(
+   path_data(
       .clock(clock),
       .reset(reset),
       .alpha(alpha),
-      .control(control),
-      .square_root(square_root),
+      .action_load(action_load),
+      .action_add(action_add),
+      .action_half(action_half),
+      .flag_greater(flag_greater),
+      .root(root_hexadecimal)
    );
+   convert_base(
+      .hexadecimal(root_hexadecimal),
+      .decimal(root_decimal)
+   )
+   show_result(
+      .reset(reset),
+      .start(start),
+      .alpha(alpha),
+      .root(root_decimal),
+      .result(result)
+   )
    seven_segment_display the_display(
       .clock(clock),
       .reset(reset),
-      .digit_1(square_root),
-      .digit_2(alpha),
-      .digit_3(4'b0000),
-      .digit_4(4'b0000),
+      .digit_1(4'b0000),
+      .digit_2(result[11:8]),
+      .digit_3(result[7:4]),
+      .digit_4(result[3:0]),
       .anode(anode),
       .cathode(cathode)
    );
