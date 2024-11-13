@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module vending_machine (
+module vending_machine(
    input clock, 
    input reset,
    input [2:0] button, 

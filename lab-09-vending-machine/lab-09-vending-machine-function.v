@@ -36,10 +36,10 @@ module vendor(
    parameter nickel     = 3'd1;
 
    wire enable;
-   reg [3:0] state;
-   reg [3:0] next;
+   reg [3:0] state = entered_00;
+   reg [3:0] next = entered_00;
 
-   clock_enable the_clock_slow(2, clock, reset, enable);
+   clock_enable the_clock_slow(2'b10, clock, reset, enable);
    
    always @(*) begin
       case(state)
@@ -166,30 +166,30 @@ module vendor(
    
    always @(*) begin
       case(switch)
-         product_15: cost = 8'd15;
-         product_20: cost = 8'd20;
-         product_25: cost = 8'd25;
-         product_30: cost = 8'd30;
+         product_15: cost = 8'h15;
+         product_20: cost = 8'h20;
+         product_25: cost = 8'h25;
+         product_30: cost = 8'h30;
          default: cost = 8'h00;
       endcase
    end
       
    always @(*) begin
       case(state)
-         entered_00: amount = 8'd00;
-         entered_05: amount = 8'd05;
-         entered_10: amount = 8'd10;
-         entered_15: amount = 8'd15;
-         entered_20: amount = 8'd20;
-         entered_25: amount = 8'd25;
-         entered_30: amount = 8'd30;
-         entered_35: amount = 8'd35;
-         change_00: amount = 8'd00;
-         change_05: amount = 8'd05;
-         change_10: amount = 8'd10;
-         change_15: amount = 8'd15;
-         change_20: amount = 8'd20;
-         default: amount = 8'd00;
+         entered_00: amount = 8'h00;
+         entered_05: amount = 8'h05;
+         entered_10: amount = 8'h10;
+         entered_15: amount = 8'h15;
+         entered_20: amount = 8'h20;
+         entered_25: amount = 8'h25;
+         entered_30: amount = 8'h30;
+         entered_35: amount = 8'h35;
+         change_00: amount = 8'h00;
+         change_05: amount = 8'h05;
+         change_10: amount = 8'h10;
+         change_15: amount = 8'h15;
+         change_20: amount = 8'h20;
+         default: amount = 8'h00;
       endcase
    end
 endmodule: vendor
@@ -303,11 +303,11 @@ module clock_enable(
    parameter mode_fast = 2'b00;
    parameter mode_moderate = 2'b01;
    parameter mode_slow = 2'b10;
-   parameter ratio_fast = 16'h0080;
-   parameter ratio_moderate = 16'h0800;
-   parameter ratio_slow = 16'h8000;
-   reg [16:0] count;
-   reg [16:0] ratio;
+   parameter ratio_fast = 24'h00200;
+   parameter ratio_moderate = 24'h02000;
+   parameter ratio_slow = 24'h200000;
+   reg [16:0] count = 0;
+   reg [16:0] ratio = 1;
 
    always @(*) begin
       case (mode)    

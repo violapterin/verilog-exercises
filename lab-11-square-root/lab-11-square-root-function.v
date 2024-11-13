@@ -3,12 +3,15 @@
 
 `timescale 1ns / 1ps
 
+// (moore machine)
 module path_control(
    input clock,
    input reset,
    input start,
-   input flag_control,
-   output [3:0] flag_data,
+   input flag_greater,
+   output action_load,
+   output action_add,
+   output action_half
 );
    parameter state_idle = 2'b00;
    parameter state_load = 2'b01;
@@ -17,11 +20,6 @@ module path_control(
    reg [1:0] state;
    reg [1:0] next;
 
-   reg flag_greater = flag_control;
-   reg flag_load = flag_data[0];
-   reg flag_add = flag_data[1];
-   reg flag_half = flag_data[2];
-   
    always @(*) begin
       flag_greater = 0;
       flag_load = 0;
@@ -30,33 +28,34 @@ module path_control(
       next = state_idle;
       
       case(state)
-         state_idle:
-            if(start)
+         state_idle: begin
+            if (start)
                next = state_load;
             else
                next = state_idle;
-         state_load:
-            flag_load = 1;
-            if(flag_greater)
+         end
+         state_load: begin
+            action_half = 1;
+            next = state_add;
+         end
+         state_add: begin
+            action_half = 1;
+            if (flag_greater)
                next = state_half;
             else
                next = state_add;
-         state_add:
-            flag_add = 1;
-            if(flag_greater)
-               next = state_half;
-            else
-               next = state_add;
-         state_half:
-            flag_half = 1;
+         end
+         state_half: begin
+            action_half = 1;
             next = state_idle;
+         end
          default:
             next = state_idle;
-      endcase;
+      endcase
    end
 
-   always @(posedge clock or posedge reset) begin
-      if(reset)
+   always @(negedge clock or posedge reset) begin
+      if (reset)
          state <= idle;
       else
          state <= next;
@@ -67,49 +66,36 @@ module path_data(
    input clock,
    input reset,
    input [7:0] number,
-   output [2:0] flag_data,
-   output result,
-   input flag_control,
+   input action_load,
+   input action_add,
+   input action_half,
+   output flag_greater,
+   output result
 );
-   reg [4:0] alpha;
-   reg [4:0] delta;
+   reg [7:0] alpha;
+   reg [7:0] delta;
    reg [7:0] square;
 
-   reg flag_load = flag_data[0];
-   reg flag_add = flag_data[1];
-   reg flag_half = flag_data[2];
-   reg flag_greater = flag_control;
-
-   always @(posedge clock) begin
-      if(flag_load)
-         alpha <= number;
-   end
-
-   always @(posedge clock) begin
-      if(flag_add)
-         square <= square + delta;
-      else
-         square <= 1;
-   end
-   
-   always @(posedge clock) begin
-      if(flag_add)
-         delta <= delta + 2;
-      else
+   always @(posedge clock or posedge reset) begin
+      if (reset) begin
+         alpha <= 0;
          delta <= 3;
+         square <= 1;
+         result <= 0;
+      end
+      else if (flag_load) begin
+         alpha <= number;
+      end
+      else if (flag_add) begin
+         square <= square + delta;
+         delta <= delta + 2;
+      end
+      else if (flag_half) begin
+         result <= (delta >> 1) - 1;
+      end
    end
    
    flag_greater = (square > alpha);
-   
-   always @(posedge clock or posedge reset) begin
-      if(reset)
-         alpha <= 0;
-         delta <= 0;
-         square <= 0;
-         result <= 0;
-      else
-         result <= (delta >> 1) - 1;
-   end
 endmodule: path_data
 
 module seven_segment_display(
