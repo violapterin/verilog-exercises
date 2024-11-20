@@ -7,7 +7,6 @@
 module path_control(
    input clock,
    input reset,
-   input start,
    input flag_greater,
    output reg action_load,
    output reg action_add,
@@ -25,7 +24,7 @@ module path_control(
    always @(*) begin
       case (state)
          state_idle: begin
-            if (start)
+            if (reset)
                state_next = state_load;
             else
                state_next = state_idle;
@@ -74,7 +73,7 @@ module path_data(
    input action_load,
    input action_add,
    input action_half,
-   output flag_greater,
+   output reg flag_greater,
    output reg root
 );
    reg [7:0] delta, delta_next;
@@ -130,16 +129,16 @@ endmodule: convert_base
 
 module show_result(
    input reset,
-   input start,
+   input show,
    input [11:0] alpha,
    input [11:0] root,
    output reg [11:0] result
 );
-   always @(posedge reset or posedge start) begin
+   always @(posedge reset or posedge show) begin
       if (reset) begin
          result <= alpha;
       end
-      else if (start) begin
+      else if (show) begin
          result <= root;
       end
    end
