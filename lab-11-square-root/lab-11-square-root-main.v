@@ -8,7 +8,7 @@ module square_root(
    input clock,
    input reset,
    input start,
-   input [3:0] alpha,
+   input [7:0] alpha,
    output [3:0] anode,
    output [6:0] cathode
 );
@@ -16,7 +16,7 @@ module square_root(
    wire flag_greater;
    wire [7:0] root_hexadecimal;
    wire [11:0] root_decimal;
-   wire [11:0] number;
+   wire [11:0] result;
 
    path_control(
       .clock(clock),
@@ -40,14 +40,14 @@ module square_root(
    convert_base(
       .hexadecimal(root_hexadecimal),
       .decimal(root_decimal)
-   )
+   );
    show_result(
       .reset(reset),
       .start(start),
       .alpha({4'b0000, alpha}),
       .root(root_decimal),
       .result(result)
-   )
+   );
    seven_segment_display the_display(
       .clock(clock),
       .reset(reset),

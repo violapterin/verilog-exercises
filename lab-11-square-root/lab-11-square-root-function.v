@@ -17,34 +17,36 @@ module path_control(
    parameter state_load = 2'b01;
    parameter state_add = 2'b10;
    parameter state_half = 2'b11;
-   reg [1:0] state;
-   reg [1:0] next;
+   reg [1:0] state, state_next;
+   reg [1:0] state_next;
+   reg action_load_next, action_add_next, action_half_next;
+
 
    always @(*) begin
       case (state)
          state_idle: begin
             if (start)
-               next = state_load;
+               state_next = state_load;
             else
-               next = state_idle;
+               state_next = state_idle;
          end
          state_load: begin
-            action_load = 1;
+            action_load_next = 1;
             if (flag_greater)
-               next = state_half;
+               state_next = state_half;
             else
-               next = state_add;
+               state_next = state_add;
          end
          state_add: begin
-            action_add = 1;
-            next = state_load;
+            action_add_next = 1;
+            state_next = state_load;
          end
          state_half: begin
-            action_half = 1;
-            next = state_idle;
+            action_half_next = 1;
+            state_next = state_idle;
          end
          default: begin
-            next = state_idle;
+            state_next = state_idle;
          end
       endcase
    end
@@ -57,7 +59,10 @@ module path_control(
          state <= state_idle;
       end
       else begin
-         state <= next;
+         state <= state_next;
+         action_load <= action_load_next;
+         action_add <= action_add_next;
+         action_half <= action_half_next;
       end
    end
 endmodule: path_control
@@ -94,7 +99,9 @@ module path_data(
       end
    end
    
-   assign flag_greater = (square > alpha);
+   always @(*) begin
+      flag_greater = (square > alpha);
+   end
 endmodule: path_data
 
 // // // // // // // // // // // // // // // // // //
