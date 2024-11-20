@@ -303,11 +303,11 @@ module clock_enable(
    parameter mode_fast = 2'b00;
    parameter mode_moderate = 2'b01;
    parameter mode_slow = 2'b10;
-   parameter ratio_fast = 24'h00200;
-   parameter ratio_moderate = 24'h02000;
-   parameter ratio_slow = 24'h200000;
-   reg [16:0] count = 0;
-   reg [16:0] ratio = 1;
+   parameter ratio_fast = 28'h0000400;
+   parameter ratio_moderate = 28'h0040000;
+   parameter ratio_slow = 28'h4000000;
+   reg [28:0] count;
+   reg [28:0] ratio;
 
    always @(*) begin
       case (mode)    
@@ -316,19 +316,19 @@ module clock_enable(
          mode_slow: ratio = ratio_slow;
       endcase
    end
-   
+
    always @(posedge clock or posedge reset) begin
       if (reset) begin
-         count  <= 1'b0;
-         enable <= 1'b0;
+         count  <= 28'h0000000;
+         enable <= 0;
       end
-      else if (count == ratio - 1) begin
-         count  <= 1'b0;
-         enable <= 1'b1;
+      else if (count == ratio - 28'h0000001) begin
+         count  <= 28'h0000000;
+         enable <= 1;
       end
       else begin
-         count  <= count + 1'b1;
-         enable <= 1'b0;
+         count  <= count + 28'h0000001;
+         enable <= 0;
       end
    end
 endmodule: clock_enable

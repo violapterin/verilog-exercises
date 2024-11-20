@@ -9,9 +9,9 @@ module path_control(
    input reset,
    input start,
    input flag_greater,
-   output action_load,
-   output action_add,
-   output action_half
+   output reg action_load,
+   output reg action_add,
+   output reg action_half
 );
    parameter state_idle = 2'b00;
    parameter state_load = 2'b01;
@@ -103,7 +103,7 @@ endmodule: path_data
 module convert_base(
    input [7:0] hexadecimal,
    output [11:0] decimal
-)
+);
    reg shift_1, shift_2, shift_3;
    reg remain_1, remain_2, remain_3;
    always @(*) begin
@@ -122,11 +122,11 @@ module convert_base(
 endmodule: convert_base
 
 module show_result(
-   input reset(reset),
-   input start(start),
-   input alpha(alpha),
-   input root(root),
-   output reg result(result)
+   input reset,
+   input start,
+   input [11:0] alpha,
+   input [11:0] root,
+   output reg [11:0] result
 );
    always @(posedge reset or posedge start) begin
       if (reset) begin
@@ -250,30 +250,33 @@ module clock_enable(
    parameter mode_fast = 2'b00;
    parameter mode_moderate = 2'b01;
    parameter mode_slow = 2'b10;
-   parameter ratio_fast = 18'h0080;
-   parameter ratio_moderate = 18'h0800;
-   parameter ratio_slow = 16'h8000;
-   reg [16:0] count;
-   reg [18:0] ratio;
+   parameter ratio_fast = 28'h0000400;
+   parameter ratio_moderate = 28'h0040000;
+   parameter ratio_slow = 28'h4000000;
+   reg [28:0] count;
+   reg [28:0] ratio;
 
-   case (mode)    
-      mode_fast: ratio = ratio_fast;
-      mode_moderate: ratio = ratio_moderate;
-      mode_slow: ratio = ratio_slow;
-   endcase
-   
+   always @(*) begin
+      case (mode)    
+         mode_fast: ratio = ratio_fast;
+         mode_moderate: ratio = ratio_moderate;
+         mode_slow: ratio = ratio_slow;
+      endcase
+   end
+
    always @(posedge clock or posedge reset) begin
       if (reset) begin
-         count  <= 1'b0;
-         enable <= 1'b0;
+         count  <= 28'h0000000;
+         enable <= 0;
       end
-      else if (count == ratio - 1) begin
-         count  <= 1'b0;
-         enable <= 1'b1;
+      else if (count == ratio - 28'h0000001) begin
+         count  <= 28'h0000000;
+         enable <= 1;
       end
       else begin
-         count  <= count + 1'b1;
-         enable <= 1'b0;
+         count  <= count + 28'h0000001;
+         enable <= 0;
       end
    end
 endmodule: clock_enable
+

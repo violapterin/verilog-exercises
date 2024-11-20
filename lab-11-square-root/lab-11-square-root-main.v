@@ -5,10 +5,12 @@
 `timescale 1ns / 1ps
 
 module square_root(
-   input clock, input reset, input start,
+   input clock,
+   input reset,
+   input start,
    input [3:0] alpha,
-   output [3:0] anode,  
-   output [6:0] cathode,
+   output [3:0] anode,
+   output [6:0] cathode
 );
    wire action_load, action_add, action_half;
    wire flag_greater;
@@ -42,7 +44,7 @@ module square_root(
    show_result(
       .reset(reset),
       .start(start),
-      .alpha(alpha),
+      .alpha({4'b0000, alpha}),
       .root(root_decimal),
       .result(result)
    )
