@@ -7,6 +7,7 @@
 module square_root(
    input clock,
    input reset,
+   input start,
    input show,
    input [7:0] alpha,
    output [3:0] anode,
@@ -21,6 +22,7 @@ module square_root(
    path_control(
       .clock(clock),
       .reset(reset),
+      .start(start),
       .flag_greater(flag_greater),
       .action_load(action_load),
       .action_add(action_add),

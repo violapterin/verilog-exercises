@@ -1,7 +1,8 @@
 
 set_property PACKAGE_PIN W5 [get_ports clock]
-set_property PACKAGE_PIN U18 [get_ports reset]
-set_property PACKAGE_PIN T18 [get_ports show]
+set_property PACKAGE_PIN T18 [get_ports reset]
+set_property PACKAGE_PIN U18 [get_ports start]
+set_property PACKAGE_PIN U17 [get_ports show]
 
 set_property PACKAGE_PIN W2 [get_ports {alpha[0]}]
 set_property PACKAGE_PIN U1 [get_ports {alpha[1]}]
@@ -27,6 +28,7 @@ set_property PACKAGE_PIN W7 [get_ports {cathode[6]}]
 
 set_property IOSTANDARD LVCMOS18 [get_ports clock]
 set_property IOSTANDARD LVCMOS18 [get_ports reset]
+set_property IOSTANDARD LVCMOS18 [get_ports start]
 set_property IOSTANDARD LVCMOS18 [get_ports show]
 
 set_property IOSTANDARD LVCMOS18 [get_ports {alpha[0]}]

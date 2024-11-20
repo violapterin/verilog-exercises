@@ -7,6 +7,7 @@
 module path_control(
    input clock,
    input reset,
+   input start,
    input flag_greater,
    output reg action_load,
    output reg action_add,
@@ -17,14 +18,13 @@ module path_control(
    parameter state_add = 2'b10;
    parameter state_half = 2'b11;
    reg [1:0] state, state_next;
-   reg [1:0] state_next;
    reg action_load_next, action_add_next, action_half_next;
 
 
    always @(*) begin
       case (state)
          state_idle: begin
-            if (reset)
+            if (start)
                state_next = state_load;
             else
                state_next = state_idle;
@@ -52,10 +52,10 @@ module path_control(
 
    always @(negedge clock or posedge reset) begin
       if (reset) begin
+         state <= state_idle;
          action_load <= 0;
          action_add <= 0;
          action_half <= 0;
-         state <= state_idle;
       end
       else begin
          state <= state_next;
@@ -74,7 +74,7 @@ module path_data(
    input action_add,
    input action_half,
    output reg flag_greater,
-   output reg root
+   output reg [7:0] root
 );
    reg [7:0] delta, delta_next;
    reg [7:0] square, square_next;
