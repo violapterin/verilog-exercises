@@ -43,37 +43,119 @@ module multiplier_combinational(
    assign p[7] = c_3_4;
 endmodule: multiplier_combinational
 
+// // // // // // // // // // // // // // // //
+// // // // // // // // // // // // // // // //
+
 module multiplier_array(
-   input [3:0] a,
-   input [3:0] b,
-   output [7:0] p
+   input [3:0] alpha,
+   input [3:0] beta,
+   output [7:0] product
 );
-   wire w_1_1, w_1_2, w_1_3, w_1_4;
-   wire w_2_1, w_2_2, w_2_3, w_2_4;
-   wire w_3_1, w_3_2, w_3_3, w_3_4;
-   wire w_4_1, w_4_2, w_4_3, w_4_4;
+   wire s_0_0, s_0_1, s_0_2, s_0_3;
+   wire s_1_0, s_1_1, s_1_2, s_1_3;
+   wire s_2_0, s_2_1, s_2_2, s_2_3;
+   wire s_3_0, s_3_1, s_3_2, s_3_3;
+   wire s_4_0, s_4_1, s_4_2;
+   wire c_0_0, c_0_1, c_0_2, c_0_3;
+   wire c_1_0, c_1_1, c_1_2, c_1_3;
+   wire c_2_0, c_2_1, c_2_2, c_2_3;
+   wire c_3_0, c_3_1, c_3_2, c_3_3;
+   wire c_4_0, c_4_1, c_4_2;
 
-   // XXX
+   block_0_0 block(alpha[0], beta[0],     0,     0, s_0_0, c_0_0);
+   block_0_1 block(alpha[1], beta[0],     0,     0, s_0_1, c_0_1);
+   block_0_2 block(alpha[2], beta[0],     0,     0, s_0_2, c_0_2);
+   block_0_3 block(alpha[3], beta[0],     0,     0, s_0_3, c_0_3);
 
-   row_block(a0, w11, 0, 0,)
+   block_1_0 block(alpha[0], beta[1], s_0_1, c_0_0, s_1_0, c_1_0);
+   block_1_1 block(alpha[1], beta[1], s_0_2, c_0_1, s_1_1, c_1_1);
+   block_1_2 block(alpha[2], beta[1], s_0_3, c_0_2, s_1_2, c_1_2);
+   block_1_3 block(alpha[3], beta[1],     0, c_0_3, s_1_3, c_1_3);
+
+   block_2_0 block(alpha[0], beta[2], s_1_1, c_1_0, s_2_0, c_2_0);
+   block_2_1 block(alpha[1], beta[2], s_1_2, c_1_1, s_2_1, c_2_1);
+   block_2_2 block(alpha[2], beta[2], s_1_3, c_1_2, s_2_2, c_2_2);
+   block_2_3 block(alpha[3], beta[2],     0, c_1_3, s_2_3, c_2_3);
+
+   block_3_0 block(alpha[0], beta[3], s_2_1, c_2_0, s_3_0, c_3_0);
+   block_3_1 block(alpha[1], beta[3], s_2_2, c_2_1, s_3_1, c_3_1);
+   block_3_2 block(alpha[2], beta[3], s_2_3, c_2_2, s_3_2, c_3_2);
+   block_3_3 block(alpha[3], beta[3],     0, c_2_3, s_3_3, c_3_3);
+
+   full_4_1 full_adder(s_3_1, c_3_0,     0, s_4_0, c_4_0);
+   full_4_2 full_adder(s_3_2, c_3_1, c_4_0, s_4_1, c_4_1);
+   full_4_3 full_adder(s_3_3, c_3_2, c_4_1, s_4_2, c_4_2);
+
+   assign product[0] = s_0_0;
+   assign product[1] = s_1_0;
+   assign product[2] = s_2_0;
+   assign product[3] = s_3_0;
+   assign product[4] = s_4_0;
+   assign product[5] = s_4_1;
+   assign product[6] = s_4_2;
+   assign product[7] = c_4_2;
 endmodule: multiplier_array
 
-module row_block(
-   a0, w11, 0, 0,
-);
-   // XXX
-endmodule: row_block
-
 module block(
-   input x, input y,
+   input phi, input chi,
    input sum_in, input carry_in,
    output sum_out, output carry_out
 );
-   and(b, x, y);
+   and(beta, phi, chi);
    full_adder the_full_adder(
-      sum_in, b, carry_in, carry_out, sum_out
+      sum_in, beta, carry_in, carry_out, sum_out
    );
-endmodule
+endmodule: block
+
+// // // // // // // // // // // // // // // //
+// // // // // // // // // // // // // // // //
+
+// legacy code
+module multiplier_booth(
+   input [3:0] A,
+   input [3:0] B,
+   output [7:0] P
+);
+   wire signed [9:0] x1, x2, x3;
+   wire signed [9:0] P1, P2, P3;
+      
+   boothEncode b1({B[1:0], 1'b0}, A, x1);
+   boothEncode b2(B[3:1], A, x2);
+   boothEncode b3({2'b0, B[3]}, A, x3);
+
+   assign P1 = x1;
+   assign P2 = (P1>>>2) + x2;
+   assign P3 = (P2>>>2) + x3;
+   assign P = P3[7:0];
+endmodule: multiplier_booth
+
+module encode_booth(
+    input [2:0] bits,
+    input [3:0] A,
+    output [9:0] y
+    );
+   
+   wire [5:0] A1 = {2'b0, A};
+   reg [5:0] x;
+   assign y = {x, 4'b0};
+   
+   always @(bits or A1) begin
+      case(bits)
+         0: x = 0;
+         1: x = A1;
+         2: x = A1;
+         3: x = A1<<1;
+         4: x = ~(A1<<1) + 1;
+         5: x = ~A1 + 1;
+         6: x = ~A1 + 1;
+         7: x = 0;
+         default: x = 0;
+      endcase
+   end
+endmodule: encode_booth
+
+// // // // // // // // // // // // // // // //
+// // // // // // // // // // // // // // // //
 
 module full_adder(
    input a,
@@ -97,6 +179,9 @@ module half_adder(
    xor(s, a, b);
    and(c, a, b);
 endmodule
+
+// // // // // // // // // // // // // // // //
+// // // // // // // // // // // // // // // //
 
 module seven_segment_display(
    input clock, input reset,
