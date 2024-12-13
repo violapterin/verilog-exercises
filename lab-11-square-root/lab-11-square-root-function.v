@@ -17,9 +17,11 @@ module path_control(
    parameter state_load = 2'b01;
    parameter state_add = 2'b10;
    parameter state_half = 2'b11;
-   reg [1:0] state, state_next;
-   reg action_load_next, action_add_next, action_half_next;
-
+   reg [1:0] state;
+   reg [1:0] state_next;
+   reg action_load_next;
+   reg action_add_next;
+   reg action_half_next;
 
    always @(*) begin
       case (state)

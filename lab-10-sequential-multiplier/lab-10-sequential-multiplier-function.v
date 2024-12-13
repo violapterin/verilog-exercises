@@ -1,145 +1,165 @@
 ﻿// sequential multiplier
-// adapted from Mano and Ciletti, 6e, p 516
 
 module multiplier_sequential(
    input clock,
    input clear,
    input start,
-   input [3: 0] number_one,
-   input [3: 0] number_two,
-   output [3: 0] result,
+   input [3:0] alpha,
+   input [3:0] beta,
+   output [3:0] product,
 );
    path_data(
       .clock(clock),
       .clear(clear),
-      .number_one(number_one),
-      .number_two(number_two),
+      .alpha(alpha),
+      .beta(beta),
       .flag_data(flag_data),
-      .result(result),
+      .product(product),
       .flag_control(flag_control)
    );
    path_control(
       .clock(clock),
       .clear(clear),
       .start(start),
-      .number_one(number_one),
-      .number_two(number_two),
+      .alpha(alpha),
+      .beta(beta),
       .flag_control(flag_control)
       .flag_data(flag_data),
    );
 endmodule: multiplier_sequential
 
+// (moore machine)
 module path_control(
    input clock,
-   input clear,
+   input reset,
    input start,
-   input [1: 0] flag_control,
-   output [3: 0] flag_data,
+   input flag_zero_beta,
+   input flag_least_bit_beta,
+   output reg action_load_alpha,
+   output reg action_load_beta,
+   output reg action_shift_phi,
+   output reg action_shift_chi,
+   output reg action_load_product,
+   output reg action_add_product
 );
-   parameter state_idle = 2'b01;
-   parameter state_add = 2'b10;
+   parameter state_idle = 2'b00;
+   parameter state_add = 2'b01;
+   parameter state_load = 2'b10;
    parameter state_shift = 2'b11;
-   reg [2: 0] state;
-   reg [2: 0] next;
-
-   reg flag_load = flag_data[0];
-   reg flag_decrease = flag_data[1];
-   reg flag_add = flag_data[2];
-   reg flag_shift = flag_data[3];
-   wire flag_zero = flag_control[0];
-   wire flag_onset = flag_control[1];
-
-   always @ (posedge clock or posedge clear) begin
-      if (clear)
-         state <= state_idle;
-      else
-         state <= next;
-   end
+   reg [1:0] state;
+   reg [1:0] state_next;
+   reg action_load_alpha_next;
+   reg action_load_beta_next;
+   reg action_shift_phi_next;
+   reg action_shift_chi_next;
+   reg action_load_product_next;
+   reg action_add_next;
 
    always @(*) begin
-      flag_load = 0;
-      flag_decrease = 0;
-      flag_add = 0;
-      flag_shift = 0;
-      next = state_idle;
-      
       case (state)
          state_idle: begin
-            if (start) begin
-               flag_load = 1;
-               next = state_add;
-            end
+            if (start)
+               state_next = state_load;
+            else
+               state_next = state_idle;
+         end
+         state_load: begin
+            action_load_alpha_next = 1;
+            action_load_beta_next = 1;
+            action_load_product_next = 1;
+            if (flag_zero)
+               state_next = state_idle;
+            else if (flag_add)
+               state_next = state_add;
+            else
+               state_next = state_shift;
          end
          state_add: begin
-            flag_decrease = 1;
-            if (flag_onset)
-               flag_add = 1;
+            action_add = 1;
             next = state_shift;
          end
          state_shift: begin
-            flag_shift = 1;
+            action_shift_phi = 1;
+            action_shift_chi = 1;
             if (flag_zero)
-               next = state_idle;
+               state_next = state_idle;
+            else if (flag_add)
+               state_next = state_add;
             else
-               next = state_add;
+               state_next = state_shift;
          end
          default:
             next = state_idle;
       endcase
    end
+
+   always @(negedge clock or posedge reset) begin
+      if (reset) begin
+         state <= state_idle;
+         action_load_alpha <= 0;
+         action_load_beta <= 0;
+         action_shift_phi <= 0;
+         action_shift_chi <= 0;
+         action_load_product <= 0;
+         action_add_product <= 0;
+      end
+      else begin
+         state <= state_next;
+         action_load_alpha <= action_load_alpha_next;
+         action_load_beta <= action_load_beta_next;
+         action_shift_phi <= action_shift_phi_next;
+         action_shift_chi <= action_shift_chi_next;
+         action_load_product <= action_load_product_next;
+         action_add_product <= action_add_product_next;
+      end
+   end
 endmodule: path_control
 
 module path_data(
    input clock,
-   input clear,
-   input number_one,
-   input number_two,
-   input [3: 0] flag_data,
-   output result,
-   output [1: 0] flag_control
+   input reset,
+   input [3:0] alpha,
+   input [3:0] beta,
+   input action_load_alpha,
+   input action_load_beta,
+   input action_shift_phi,
+   input action_shift_chi,
+   input action_load_product,
+   input action_add,
+   output reg flag_zero,
+   output reg flag_add,
+   output [7:0] product,
 );
-   reg [3: 0] alpha;
-   reg [3: 0] beta;
-   reg [3: 0] gamma;
-   reg carry;
-   reg [2: 0] counter;
-
-   reg flag_zero = flag_control[0];
-   reg flag_onset = flag_control[1];
-   wire flag_load = flag_data[0];
-   wire flag_decrease = flag_data[1];
-   wire flag_add = flag_data[2];
-   wire flag_shift = flag_data[3];
+   reg [7:0] phi; // alpha padded with zero
+   reg [3:0] chi; // beta shifted
 
    always @ (posedge clock) begin
-      if (flag_load) begin
-         alpha <= number_one;
-         beta <= number_two;
-         carry <= 0;
-         gamma <= 0;
-         counter <= width;
+      if (action_load_alpha) begin
+         phi <= {alpha, 4b'0000};
       end
-      if (flag_add)
-         {carry, gamma} <= gamma + alpha;
-      if (flag_shift)
-         {carry, gamma, beta} <= ({carry, gamma, beta} >> 1);
-      if (flag_decrease)
-         counter <= counter - 1;
+      else if (action_load_beta) begin
+         chi <= beta;
+      end
+      if (action_shift_phi) begin
+         phi <= (phi << 1);
+      end
+      if (action_shift_chi) begin
+         chi <= (chi >> 1);
+      end
+      else if (action_load_product) begin
+         product <= 8b'00000000;
+      end
+      else if (action_add) begin
+         product <= product + phi;
+      end
    end
 
-   flag_zero = (counter == 0);
-   flag_onset = beta[0];
+   always @(*) begin
+      flag_zero = (chi == 0);
+   end
 
-   always @(posedge clock or posedge clear) begin
-      if(clear)
-         alpha <= 0;
-         beta <= 0;
-         carry <= 0;
-         gamma <= 0;
-         counter <= 0;
-         result <= 0;
-      else
-         result <= {gamma, beta};
+   always @(*) begin
+      flag_add = chi[0];
    end
 endmodule: path_data
 
