@@ -112,44 +112,44 @@ endmodule: block
 
 // legacy code
 module multiplier_booth(
-   input [3:0] A,
-   input [3:0] B,
-   output [7:0] P
+   input [3:0] alpha,
+   input [3:0] beta,
+   output [7:0] phi
 );
-   wire signed [9:0] x1, x2, x3;
-   wire signed [9:0] P1, P2, P3;
+   wire signed [9:0] chi_1, chi_2, chi_3;
+   wire signed [9:0] phi_1, phi_2, phi_3;
       
-   boothEncode b1({B[1:0], 1'b0}, A, x1);
-   boothEncode b2(B[3:1], A, x2);
-   boothEncode b3({2'b0, B[3]}, A, x3);
+   encode_booth booth_1({beta[1:0], 1'b0}, alpha, chi_1);
+   encode_booth booth_2(beta[3:1], alpha, chi_2);
+   encode_booth booth_3({2'b00, beta[3]}, alpha, chi_3);
 
-   assign P1 = x1;
-   assign P2 = (P1>>>2) + x2;
-   assign P3 = (P2>>>2) + x3;
-   assign P = P3[7:0];
+   assign phi_1 = chi_1;
+   assign phi_2 = (phi_1>>>2) + chi_2;
+   assign phi_3 = (phi_2>>>2) + chi_3;
+   assign phi = phi_3[7:0];
 endmodule: multiplier_booth
 
 module encode_booth(
     input [2:0] bits,
-    input [3:0] A,
-    output [9:0] y
+    input [3:0] alpha,
+    output [9:0] chi
     );
    
-   wire [5:0] A1 = {2'b0, A};
-   reg [5:0] x;
-   assign y = {x, 4'b0};
+   wire [5:0] beta = {2'b00, alpha};
+   reg [5:0] phi;
+   assign chi = {phi, 4'b0000};
    
    always @(bits or A1) begin
       case(bits)
-         0: x = 0;
-         1: x = A1;
-         2: x = A1;
-         3: x = A1<<1;
-         4: x = ~(A1<<1) + 1;
-         5: x = ~A1 + 1;
-         6: x = ~A1 + 1;
-         7: x = 0;
-         default: x = 0;
+         0: phi = 0;
+         1: phi = beta;
+         2: phi = beta;
+         3: phi = (beta << 1);
+         4: phi = ~(beta << 1) + 1;
+         5: phi = ~beta + 1;
+         6: phi = ~beta + 1;
+         7: phi = 0;
+         default: phi = 0;
       endcase
    end
 endmodule: encode_booth
